@@ -8,6 +8,8 @@ Multi-purpose billing PWA foundation, initially configured for **Zalish Boutique
 2. Run `npm install` and `npm run dev`.
 3. Apply the schema once: run the contents of `db/zalish-schema.sql` in Railway's PostgreSQL query console.
 
+Add an `AUTH_SECRET` environment variable in Railway (a long random value). The schema creates the bootstrap login `admin` / `root`; change this password before using the app with real customer data.
+
 All Zalish tables deliberately begin with `zalish_`. Future clients should receive their own schema file and UI module following this naming convention.
 
 ## Railway
