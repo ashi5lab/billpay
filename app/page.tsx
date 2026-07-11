@@ -586,7 +586,7 @@ function Inventory({ items, reload, notify }: any) {
     </div>
   );
 }
-function Expenses({ categories, reload, notify }: any) {
+function Expenses({ categories, reload, notify, setExpenseRecord }: any) {
   const [tab, setTab] = useState("create");
   const [f, setF] = useState<any>({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "" });
   const [cat, setCat] = useState("");
@@ -687,7 +687,7 @@ function Expenses({ categories, reload, notify }: any) {
           </div>
         </div>
       ) : (
-        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{key:"expense_date",label:"Date",render:(r:any)=>r.expense_date?.slice(0,10)},{key:"expense_name",label:"Name"},{key:"category_name",label:"Category"},{key:"amount",label:"Amount",render:(r:any)=>rupees(r.amount)}]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => props.setExpenseRecord(r)} />
+        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{key:"expense_date",label:"Date",render:(r:any)=>r.expense_date?.slice(0,10)},{key:"expense_name",label:"Name"},{key:"category_name",label:"Category"},{key:"amount",label:"Amount",render:(r:any)=>rupees(r.amount)}]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setExpenseRecord(r)} />
       )}
     </div>
   );
