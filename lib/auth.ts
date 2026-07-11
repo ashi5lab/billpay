@@ -7,11 +7,12 @@ export const sessionValue = (username: string) => `${username}.${sign(username)}
 export async function getCurrentUser() {
   const token = (await cookies()).get("zalish_session")?.value;
   if (!token) return null;
-  const parts = token.split(".");
-  if (parts.length < 2) return null;
-  const expected = sessionValue(parts[0]);
+  const lastDot = token.lastIndexOf(".");
+  if (lastDot === -1) return null;
+  const username = token.slice(0, lastDot);
+  const expected = sessionValue(username);
   if (token.length === expected.length && timingSafeEqual(Buffer.from(token), Buffer.from(expected))) {
-    return parts[0];
+    return username;
   }
   return null;
 }
