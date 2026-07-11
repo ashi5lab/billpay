@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     }
 
     const query = `SELECT * FROM zalish_invoices WHERE ${whereClause} ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
-    const countQuery = `SELECT count(*) FROM zalish_invoices WHERE ${whereClause}`;
+    const countQuery = `SELECT count(*) FROM zalish_invoices WHERE ${whereClause.replace(/\$(\d+)/g, (m, n) => `$${Number(n) - 2}`)}`;
 
     const [items, count] = await Promise.all([
       db.query(query, params),

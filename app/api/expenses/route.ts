@@ -33,7 +33,7 @@ export async function GET(req: Request) {
     }
 
     const query = `SELECT e.*, c.name as category_name FROM zalish_expenses e LEFT JOIN zalish_expense_categories c ON c.id=e.category_id WHERE ${whereClause} ORDER BY e.expense_date DESC, e.created_at DESC LIMIT $1 OFFSET $2`;
-    const countQuery = `SELECT count(*) FROM zalish_expenses e WHERE ${whereClause}`;
+    const countQuery = `SELECT count(*) FROM zalish_expenses e WHERE ${whereClause.replace(/\$(\d+)/g, (m, n) => `$${Number(n) - 2}`)}`;
 
     const [items, count] = await Promise.all([
       db.query(query, params),

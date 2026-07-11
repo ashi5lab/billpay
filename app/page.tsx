@@ -138,6 +138,17 @@ export default function App() {
               {label}
             </button>
           ))}
+          <div className="mt-8 border-t pt-4">
+            <button
+              className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
+              onClick={async () => {
+                await api("/api/auth/logout", { method: "POST" });
+                setAuthenticated(false);
+              }}
+            >
+              Sign out
+            </button>
+          </div>
         </aside>
         <section className="p-4">
           {view === "dashboard" && <Dashboard {...props} />}{" "}
@@ -342,7 +353,7 @@ function Billing({ items, config, notify, setReceipt }: any) {
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
-    const t = setTimeout(() => query.trim() ? api(`/api/advances?q=${encodeURIComponent(query)}`).then(setAdvances).catch(() => {}) : setAdvances([]), 350);
+    const t = setTimeout(() => query.trim() ? api(`/api/advances?q=${encodeURIComponent(query)}`).then((res: any) => setAdvances(res.items || res)).catch(() => {}) : setAdvances([]), 350);
     return () => clearTimeout(t);
   }, [query]);
 
