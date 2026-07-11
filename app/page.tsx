@@ -165,7 +165,7 @@ export default function App() {
           {view === "config" && (
             <Config config={config} setConfig={setConfig} notify={notify} />
           )}
-          {view === "users" && <Users />}
+          {view === "users" && <Users notify={notify} />}
           {view === "logs" && <Logs />}
         </section>
       </div>
@@ -801,14 +801,57 @@ function Config({ config, setConfig, notify }: any) {
     </form>
   );
 }
-function Users() {
+function Users({ notify }: any) {
+  const [tab, setTab] = useState("create");
+  const [f, setF] = useState<any>({ id: "", name: "", email: "", password: "" });
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      if (f.id) {
+        await api("/api/users", { method: "PATCH", body: JSON.stringify(f) });
+        notify("User updated.");
+      } else {
+        await api("/api/users", { method: "POST", body: JSON.stringify(f) });
+        notify("User created.");
+      }
+      setF({ id: "", name: "", email: "", password: "" });
+      setReloadTrigger(x => x + 1);
+      setTab("manage");
+    } catch (e: any) { notify(e.message); }
+  };
+
+  const edit = (row: any) => { setF({ id: row.id, name: row.name, email: row.email, password: "" }); setTab("create"); };
+  const remove = async (row: any) => { await api("/api/users", { method: "DELETE", body: JSON.stringify({ id: row.id }) }); setReloadTrigger(x => x + 1); notify("User deleted."); };
+
   return (
-    <div className="card">
-      <h2 className="text-2xl font-bold">Admin users</h2>
-      <p className="mt-2 text-slate-600">
-        The database table is ready for admin-only users. Authentication and
-        password setup should be added before this page is used in production.
-      </p>
+    <div>
+      <div className="flex justify-between items-center mb-4 border-b pb-4">
+        <h2 className="text-2xl font-bold">Users</h2>
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", name: "", email: "", password: "" }); }}>{f.id ? "Edit User" : "Create User"}</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
+        </div>
+      </div>
+      {tab === "create" ? (
+        <form onSubmit={submit} className="card grid gap-3 sm:grid-cols-2">
+          <Field label="Name *" value={f.name} onChange={(v: any) => setF({ ...f, name: v })} />
+          <Field label="Email (Username) *" type="email" value={f.email} onChange={(v: any) => setF({ ...f, email: v })} disabled={!!f.id} />
+          <Field label={f.id ? "New Password (leave blank to keep current)" : "Password *"} type="password" value={f.password} onChange={(v: any) => setF({ ...f, password: v })} />
+          <div className="sm:col-span-2">
+            <button className="button">{f.id ? "Update User" : "Create User"}</button>
+            {f.id && <button type="button" className="button-secondary ml-3" onClick={() => { setF({ id: "", name: "", email: "", password: "" }); setTab("manage"); }}>Cancel</button>}
+          </div>
+        </form>
+      ) : (
+        <DataTable endpoint="/api/users" reloadTrigger={reloadTrigger} filterDate={false} columns={[
+          { key: "name", label: "Name" },
+          { key: "email", label: "Email" },
+          { key: "role", label: "Role" },
+          { key: "created_at", label: "Created At", render: (r: any) => r.created_at?.slice(0, 10) }
+        ]} onEdit={edit} onDelete={remove} />
+      )}
     </div>
   );
 }
