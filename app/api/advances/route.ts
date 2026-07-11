@@ -17,26 +17,30 @@ export async function GET(req: Request) {
     const startDate = p.get("startDate") || "";
     const endDate = p.get("endDate") || "";
 
-    let whereClause = "deleted_at IS NULL AND settled_invoice_id IS NULL";
+    const excludeSettled = p.get("excludeSettled") === "true";
+    let whereClause = "a.deleted_at IS NULL";
+    if (excludeSettled) {
+      whereClause += " AND a.settled_invoice_id IS NULL";
+    }
     const params: any[] = [limit, (page - 1) * limit];
     let paramCount = 3;
 
     if (q) {
-      whereClause += ` AND (receipt_number ILIKE $${paramCount} OR customer_name ILIKE $${paramCount} OR customer_phone ILIKE $${paramCount})`;
+      whereClause += ` AND (a.receipt_number ILIKE $${paramCount} OR a.customer_name ILIKE $${paramCount} OR a.customer_phone ILIKE $${paramCount})`;
       params.push(`%${q}%`);
       paramCount++;
     }
     if (startDate) {
-      whereClause += ` AND date >= $${paramCount++}`;
+      whereClause += ` AND a.date >= $${paramCount++}`;
       params.push(startDate);
     }
     if (endDate) {
-      whereClause += ` AND date <= $${paramCount++}`;
+      whereClause += ` AND a.date <= $${paramCount++}`;
       params.push(endDate);
     }
 
-    const query = `SELECT * FROM zalish_advances WHERE ${whereClause} ORDER BY date DESC LIMIT $1 OFFSET $2`;
-    const countQuery = `SELECT count(*) FROM zalish_advances WHERE ${whereClause.replace(/\$(\d+)/g, (m, n) => `$${Number(n) - 2}`)}`;
+    const query = `SELECT a.*, i.invoice_number as attached_invoice_number FROM zalish_advances a LEFT JOIN zalish_invoices i ON i.id = a.settled_invoice_id WHERE ${whereClause} ORDER BY a.date DESC LIMIT $1 OFFSET $2`;
+    const countQuery = `SELECT count(*) FROM zalish_advances a WHERE ${whereClause.replace(/\$(\d+)/g, (m, n) => `$${Number(n) - 2}`)}`;
 
     const [items, count] = await Promise.all([
       db.query(query, params),
@@ -68,8 +72,10 @@ export async function POST(req: Request) {
       [`${day}/%`],
     );
     const receipt = `${day}/${Number(seq[0].count) + 1}`;
+    const paymentMode = b.payment_mode || "UPI";
+    const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const { rows } = await c.query(
-      "INSERT INTO zalish_advances(receipt_number,customer_name,customer_phone,customer_place,advance_amount,notes,date,created_by,assigned_to) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",
+      "INSERT INTO zalish_advances(receipt_number,customer_name,customer_phone,customer_place,advance_amount,notes,date,created_by,assigned_to,payment_mode,payment_mode_other) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *",
       [
         receipt,
         b.customer_name,
@@ -79,7 +85,9 @@ export async function POST(req: Request) {
         b.notes || null,
         date,
         user,
-        b.assigned_to || null
+        b.assigned_to || null,
+        paymentMode,
+        paymentModeOther
       ],
     );
     const advance = rows[0];
@@ -98,9 +106,11 @@ export async function PATCH(req: Request) {
     if (!b.id) throw new Error("Advance ID is required");
     const user = await getCurrentUser() || "system";
     const date = b.date || new Date().toISOString().split("T")[0];
+    const paymentMode = b.payment_mode || "UPI";
+    const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const advance = await transaction(async (c) => {
       const { rows } = await c.query(
-        "UPDATE zalish_advances SET customer_name=$1, customer_phone=$2, customer_place=$3, advance_amount=$4, notes=$5, date=$6, updated_by=$7, assigned_to=$8 WHERE id=$9 AND deleted_at IS NULL AND settled_invoice_id IS NULL RETURNING *",
+        "UPDATE zalish_advances SET customer_name=$1, customer_phone=$2, customer_place=$3, advance_amount=$4, notes=$5, date=$6, updated_by=$7, assigned_to=$8, payment_mode=$9, payment_mode_other=$10 WHERE id=$11 AND deleted_at IS NULL AND settled_invoice_id IS NULL RETURNING *",
         [
           b.customer_name,
           b.customer_phone || null,
@@ -110,6 +120,8 @@ export async function PATCH(req: Request) {
           date,
           user,
           b.assigned_to || null,
+          paymentMode,
+          paymentModeOther,
           b.id,
         ],
       );

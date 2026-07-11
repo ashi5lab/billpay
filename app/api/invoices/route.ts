@@ -11,26 +11,26 @@ export async function GET(req: Request) {
     const startDate = p.get("startDate") || "";
     const endDate = p.get("endDate") || "";
 
-    let whereClause = "deleted_at IS NULL";
+    let whereClause = "n.deleted_at IS NULL";
     const params: any[] = [limit, (page - 1) * limit];
     let paramCount = 3;
 
     if (q) {
-      whereClause += ` AND (invoice_number ILIKE $${paramCount} OR customer_name ILIKE $${paramCount} OR customer_phone ILIKE $${paramCount})`;
+      whereClause += ` AND (n.invoice_number ILIKE $${paramCount} OR n.customer_name ILIKE $${paramCount} OR n.customer_phone ILIKE $${paramCount})`;
       params.push(`%${q}%`);
       paramCount++;
     }
     if (startDate) {
-      whereClause += ` AND date >= $${paramCount++}`;
+      whereClause += ` AND n.created_at >= $${paramCount++}`;
       params.push(startDate);
     }
     if (endDate) {
-      whereClause += ` AND date <= $${paramCount++}`;
+      whereClause += ` AND n.created_at <= $${paramCount++}`;
       params.push(endDate);
     }
 
-    const query = `SELECT * FROM zalish_invoices WHERE ${whereClause} ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
-    const countQuery = `SELECT count(*) FROM zalish_invoices WHERE ${whereClause.replace(/\$(\d+)/g, (m, n) => `$${Number(n) - 2}`)}`;
+    const query = `SELECT n.*, a.receipt_number as advance_receipt_number FROM zalish_invoices n LEFT JOIN zalish_advances a ON a.id = n.advance_id WHERE ${whereClause} ORDER BY n.created_at DESC LIMIT $1 OFFSET $2`;
+    const countQuery = `SELECT count(*) FROM zalish_invoices n WHERE ${whereClause.replace(/\$(\d+)/g, (m, x) => `$${Number(x) - 2}`)}`;
 
     const [items, count] = await Promise.all([
       db.query(query, params),
@@ -115,8 +115,10 @@ export async function POST(req: Request) {
     const invoiceNumber = `${base}/${Number(n.rows[0].count) + 1}`;
     const advanceAmount = Math.min(number(advance?.advance_amount), total),
       balance = roundMoney(total - advanceAmount);
+    const paymentMode = b.payment_mode || "UPI";
+    const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const inv = await c.query(
-      "INSERT INTO zalish_invoices(invoice_number,customer_name,customer_phone,customer_place,subtotal,discount,tax_rate,tax_amount,grand_total,advance_id,advance_amount,balance_due,date,created_by,assigned_to) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *",
+      "INSERT INTO zalish_invoices(invoice_number,customer_name,customer_phone,customer_place,subtotal,discount,tax_rate,tax_amount,grand_total,advance_id,advance_amount,balance_due,date,created_by,assigned_to,payment_mode,payment_mode_other) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *",
       [
         invoiceNumber,
         b.customer_name,
@@ -128,10 +130,13 @@ export async function POST(req: Request) {
         tax,
         total,
         advance?.id || null,
+        advanceAmount,
         balance,
         date,
         user,
-        b.assigned_to || null
+        b.assigned_to || null,
+        paymentMode,
+        paymentModeOther
       ],
     );
     for (const i of cleanItems) {

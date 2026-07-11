@@ -25,17 +25,23 @@ CREATE TABLE IF NOT EXISTS zalish_expenses (
   amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0), expense_date DATE NOT NULL DEFAULT CURRENT_DATE, notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), deleted_at TIMESTAMPTZ
 );
+ALTER TABLE zalish_expenses ADD COLUMN IF NOT EXISTS payment_mode TEXT NOT NULL DEFAULT 'UPI';
+ALTER TABLE zalish_expenses ADD COLUMN IF NOT EXISTS payment_mode_other TEXT;
 CREATE TABLE IF NOT EXISTS zalish_advances (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(), receipt_number TEXT NOT NULL UNIQUE, customer_name TEXT NOT NULL, customer_phone TEXT,
   customer_place TEXT, advance_amount NUMERIC(12,2) NOT NULL CHECK (advance_amount > 0), notes TEXT, issued_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   settled_invoice_id UUID, deleted_at TIMESTAMPTZ
 );
+ALTER TABLE zalish_advances ADD COLUMN IF NOT EXISTS payment_mode TEXT NOT NULL DEFAULT 'UPI';
+ALTER TABLE zalish_advances ADD COLUMN IF NOT EXISTS payment_mode_other TEXT;
 CREATE TABLE IF NOT EXISTS zalish_invoices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(), invoice_number TEXT NOT NULL UNIQUE, customer_name TEXT NOT NULL, customer_phone TEXT,
   customer_place TEXT, subtotal NUMERIC(12,2) NOT NULL, discount NUMERIC(12,2) NOT NULL DEFAULT 0, tax_rate NUMERIC(5,2) NOT NULL DEFAULT 0,
   tax_amount NUMERIC(12,2) NOT NULL DEFAULT 0, grand_total NUMERIC(12,2) NOT NULL, advance_id UUID UNIQUE REFERENCES zalish_advances(id),
   advance_amount NUMERIC(12,2) NOT NULL DEFAULT 0, balance_due NUMERIC(12,2) NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), deleted_at TIMESTAMPTZ
 );
+ALTER TABLE zalish_invoices ADD COLUMN IF NOT EXISTS payment_mode TEXT NOT NULL DEFAULT 'UPI';
+ALTER TABLE zalish_invoices ADD COLUMN IF NOT EXISTS payment_mode_other TEXT;
 DO $$ BEGIN
   ALTER TABLE zalish_advances ADD CONSTRAINT zalish_advances_settled_invoice_fk FOREIGN KEY (settled_invoice_id) REFERENCES zalish_invoices(id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;

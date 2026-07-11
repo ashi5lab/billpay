@@ -62,9 +62,11 @@ export async function POST(req: Request) {
       throw new Error("Expense amount must be greater than zero");
     const user = await getCurrentUser() || "system";
     const date = b.date || b.expense_date || new Date().toISOString().slice(0, 10);
+    const paymentMode = b.payment_mode || "UPI";
+    const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const row = await transaction(async (c) => {
       const { rows } = await c.query(
-        "INSERT INTO zalish_expenses(expense_name,category_id,amount,expense_date,date,notes,created_by,assigned_to) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
+        "INSERT INTO zalish_expenses(expense_name,category_id,amount,expense_date,date,notes,created_by,assigned_to,payment_mode,payment_mode_other) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *",
         [
           b.expense_name.trim(),
           b.category_id || null,
@@ -73,7 +75,9 @@ export async function POST(req: Request) {
           date,
           b.notes || null,
           user,
-          b.assigned_to || null
+          b.assigned_to || null,
+          paymentMode,
+          paymentModeOther
         ],
       );
       await c.query(
@@ -100,9 +104,11 @@ export async function PATCH(req: Request) {
 
     const user = await getCurrentUser() || "system";
     const date = b.date || b.expense_date || new Date().toISOString().slice(0, 10);
+    const paymentMode = b.payment_mode || "UPI";
+    const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const row = await transaction(async (c) => {
       const { rows } = await c.query(
-        "UPDATE zalish_expenses SET expense_name=$1, category_id=$2, amount=$3, expense_date=$4, notes=$5, date=$6, updated_by=$7, assigned_to=$8 WHERE id=$9 AND deleted_at IS NULL RETURNING *",
+        "UPDATE zalish_expenses SET expense_name=$1, category_id=$2, amount=$3, expense_date=$4, notes=$5, date=$6, updated_by=$7, assigned_to=$8, payment_mode=$9, payment_mode_other=$10 WHERE id=$11 AND deleted_at IS NULL RETURNING *",
         [
           b.expense_name.trim(),
           b.category_id || null,
@@ -112,6 +118,8 @@ export async function PATCH(req: Request) {
           date,
           user,
           b.assigned_to || null,
+          paymentMode,
+          paymentModeOther,
           b.id,
         ],
       );

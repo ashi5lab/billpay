@@ -161,7 +161,7 @@ export default function App() {
           {view === "advance" && <AdvanceForm {...props} />}{" "}
           {view === "inventory" && <Inventory {...props} />}{" "}
           {view === "expenses" && <Expenses {...props} />}{" "}
-          {view === "reports" && <Reports />}{" "}
+          {view === "reports" && <Reports config={config} />}{" "}
           {view === "config" && (
             <Config config={config} setConfig={setConfig} notify={notify} />
           )}
@@ -365,9 +365,12 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
   const [selected, setSelected] = useState<Advance | null>(null);
   const [saving, setSaving] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [fId, setFId] = useState("");
+  const [paymentMode, setPaymentMode] = useState("UPI");
+  const [paymentModeOther, setPaymentModeOther] = useState("");
 
   useEffect(() => {
-    const t = setTimeout(() => query.trim() ? api(`/api/advances?q=${encodeURIComponent(query)}`).then((res: any) => setAdvances(res.items || res)).catch(() => { }) : setAdvances([]), 350);
+    const t = setTimeout(() => query.trim() ? api(`/api/advances?q=${encodeURIComponent(query)}&excludeSettled=true`).then((res: any) => setAdvances(res.items || res)).catch(() => { }) : setAdvances([]), 350);
     return () => clearTimeout(t);
   }, [query]);
 
@@ -392,9 +395,9 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
     }
     setSaving(true);
     try {
-      const result = await api("/api/invoices", { method: "POST", body: JSON.stringify({ customer_name: customer.name, customer_phone: customer.phone, customer_place: customer.place, date: invoiceDate, assigned_to: assignedTo, items: lines, discount: discountAmount, tax_rate: amount(tax), advance_id: selected?.id }) });
+      const result = await api("/api/invoices", { method: "POST", body: JSON.stringify({ customer_name: customer.name, customer_phone: customer.phone, customer_place: customer.place, date: invoiceDate, assigned_to: assignedTo, items: lines, discount: discountAmount, tax_rate: amount(tax), advance_id: selected?.id, payment_mode: paymentMode, payment_mode_other: paymentMode === "Other" ? paymentModeOther : null }) });
       setReceipt({ ...result, type: "invoice" });
-      notify("Invoice created successfully.");
+      notify("Invoice created/updated successfully.");
       setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
       setCustomer({ name: "", phone: "", place: "" });
       setInvoiceDate(new Date().toISOString().slice(0, 10));
@@ -403,6 +406,8 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
       setTax("");
       setQuery("");
       setSelected(null);
+      setPaymentMode("UPI");
+      setPaymentModeOther("");
       setReloadTrigger(x => x + 1);
       setTab("manage");
     } catch (e: any) {
@@ -429,19 +434,32 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Billing</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("create")}>Create Invoice</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => {
+            setTab("create");
+            setFId("");
+            setCustomer({ name: "", phone: "", place: "" });
+            setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
+            setDiscount("");
+            setTax("");
+            setAssignedTo("");
+            setSelected(null);
+            setQuery("");
+            setPaymentMode("UPI");
+            setPaymentModeOther("");
+          }}>{fId ? "Edit Invoice" : "Create Invoice"}</button>
           <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
       {tab === "create" ? (
         <form onSubmit={submit} className="space-y-4">
           <datalist id="staff-list">{staff.map((s: string) => <option key={s} value={s} />)}</datalist>
-          <div className="card grid gap-3 sm:grid-cols-5">
+          <div className="card grid gap-3 sm:grid-cols-6">
             <Field label="Customer name *" value={customer.name} onChange={(v: any) => setCustomer({ ...customer, name: v })} />
             <Field label="Phone (optional)" type="tel" value={customer.phone} onChange={(v: any) => setCustomer({ ...customer, phone: v })} />
             <Field label="Place (optional)" value={customer.place} onChange={(v: any) => setCustomer({ ...customer, place: v })} />
             <Field label="Date" type="date" value={invoiceDate} onChange={(v: any) => setInvoiceDate(v)} />
             <Field label="Assigned To" value={assignedTo} onChange={setAssignedTo} list="staff-list" />
+            <PaymentModeField value={paymentMode} otherValue={paymentModeOther} onChange={setPaymentMode} onOtherChange={setPaymentModeOther} />
           </div>
           <div className="card space-y-3">
             <div className="flex items-center justify-between">
@@ -487,17 +505,17 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
               {selected && <p className="text-sm">Balance due: {rupees(balance)}</p>}
             </div>
           </div>
-          <button disabled={saving} className="button w-full">{saving ? "Creating…" : "Create invoice"}</button>
+          <button disabled={saving} className="button w-full">{saving ? "Saving…" : (fId ? "Update invoice" : "Create invoice")}</button>
         </form>
       ) : (
-        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} />
+        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_receipt_number", label: "Advance Receipt", render: (r: any) => r.advance_receipt_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} />
       )}
     </div>
   );
 }
 function AdvanceForm({ notify, setReceipt, staff }: any) {
   const [tab, setTab] = useState("create");
-  const [f, setF] = useState<any>({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "" });
+  const [f, setF] = useState<any>({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" });
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   const submit = async (e: FormEvent) => {
@@ -512,12 +530,12 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
         notify("Advance receipt created.");
       }
       setReceipt({ ...r, type: "advance" });
-      setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "" });
+      setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" });
       setReloadTrigger(x => x + 1);
       setTab("manage");
     } catch (e: any) { notify(e.message); }
   };
-  const edit = (row: any) => { setF({ id: row.id, customer_name: row.customer_name, customer_phone: row.customer_phone || "", customer_place: row.customer_place || "", advance_amount: row.advance_amount, notes: row.notes || "", date: row.issued_at?.slice(0, 10) || row.date || new Date().toISOString().slice(0, 10), assigned_to: row.assigned_to || "" }); setTab("create"); };
+  const edit = (row: any) => { setF({ id: row.id, customer_name: row.customer_name, customer_phone: row.customer_phone || "", customer_place: row.customer_place || "", advance_amount: row.advance_amount, notes: row.notes || "", date: row.issued_at?.slice(0, 10) || row.date || new Date().toISOString().slice(0, 10), assigned_to: row.assigned_to || "", payment_mode: row.payment_mode || "UPI", payment_mode_other: row.payment_mode_other || "" }); setTab("create"); };
   const remove = async (row: any) => { await api("/api/advances", { method: "DELETE", body: JSON.stringify({ id: row.id }) }); setReloadTrigger(x => x + 1); notify("Advance deleted."); };
 
   return (
@@ -525,7 +543,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Advance Receipts</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "" }); }}>Create Advance</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" }); }}>Create Advance</button>
           <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
@@ -539,12 +557,13 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
             <Field label="Place" value={f.customer_place} onChange={(v: any) => setF({ ...f, customer_place: v })} />
             <Field label="Date" type="date" value={f.date} onChange={(v: any) => setF({ ...f, date: v })} />
             <Field label="Assigned To" value={f.assigned_to} onChange={(v: any) => setF({ ...f, assigned_to: v })} list="staff-list-adv" />
+            <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v:any)=>setF({...f, payment_mode: v})} onOtherChange={(v:any)=>setF({...f, payment_mode_other: v})} />
           </div>
           <Field label="Notes" value={f.notes} onChange={(v: any) => setF({ ...f, notes: v })} />
           <button className="button w-full">{f.id ? "Update advance" : "Create advance receipt"}</button>
         </form>
       ) : (
-        <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{ key: "receipt_number", label: "Receipt #" }, { key: "issued_at", label: "Date", render: (r: any) => r.issued_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_amount", label: "Amount", render: (r: any) => rupees(r.advance_amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} />
+        <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{ key: "receipt_number", label: "Receipt #" }, { key: "issued_at", label: "Date", render: (r: any) => r.issued_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "attached_invoice_number", label: "Attached Bill", render: (r: any) => r.attached_invoice_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "advance_amount", label: "Amount", render: (r: any) => rupees(r.advance_amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} />
       )}
     </div>
   );
@@ -597,7 +616,7 @@ function Inventory({ items, reload, notify }: any) {
 }
 function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) {
   const [tab, setTab] = useState("create");
-  const [f, setF] = useState<any>({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", assigned_to: "" });
+  const [f, setF] = useState<any>({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", assigned_to: "", payment_mode: "UPI" });
   const [cat, setCat] = useState("");
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
@@ -615,7 +634,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
         await api("/api/expenses", { method: "POST", body: JSON.stringify(f) });
         notify("Expense recorded.");
       }
-      setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "" });
+      setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", payment_mode: "UPI", payment_mode_other: "" });
       setReloadTrigger(x => x + 1);
       setTab("manage");
     } catch (e: any) { notify(e.message); }
@@ -644,7 +663,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
     } catch (e: any) { notify(e.message); }
   };
 
-  const edit = (row: any) => { setF({ id: row.id, expense_name: row.expense_name, category_id: row.category_id || "", amount: row.amount, expense_date: row.expense_date?.slice(0, 10) || "", notes: row.notes || "", assigned_to: row.assigned_to || "" }); setTab("create"); };
+  const edit = (row: any) => { setF({ id: row.id, expense_name: row.expense_name, category_id: row.category_id || "", amount: row.amount, expense_date: row.expense_date?.slice(0, 10) || "", notes: row.notes || "", assigned_to: row.assigned_to || "", payment_mode: row.payment_mode || "UPI", payment_mode_other: row.payment_mode_other || "" }); setTab("create"); };
   const remove = async (row: any) => { await api("/api/expenses", { method: "DELETE", body: JSON.stringify({ id: row.id }) }); setReloadTrigger(x => x + 1); notify("Expense deleted."); };
 
   return (
@@ -676,7 +695,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Expenses</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", assigned_to: "" }); }}>Add Expense</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", assigned_to: "", payment_mode: "UPI", payment_mode_other: "" }); }}>Add Expense</button>
           <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
@@ -689,6 +708,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
             <Field label="Amount (₹)" type="number" value={f.amount} onChange={(v: any) => setF({ ...f, amount: v })} />
             <Field label="Date" type="date" value={f.expense_date} onChange={(v: any) => setF({ ...f, expense_date: v })} />
             <Field label="Assigned To" value={f.assigned_to} onChange={(v: any) => setF({ ...f, assigned_to: v })} list="staff-list-exp" />
+            <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v:any)=>setF({...f, payment_mode: v})} onOtherChange={(v:any)=>setF({...f, payment_mode_other: v})} />
             <button className="button sm:col-span-2">{f.id ? "Update expense" : "Save expense"}</button>
           </form>
           <div className="card">
@@ -698,63 +718,107 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
           </div>
         </div>
       ) : (
-        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{ key: "expense_date", label: "Date", render: (r: any) => r.expense_date?.slice(0, 10) }, { key: "expense_name", label: "Name" }, { key: "category_name", label: "Category" }, { key: "assigned_to", label: "Assigned To" }, { key: "amount", label: "Amount", render: (r: any) => rupees(r.amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setExpenseRecord(r)} />
+        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{ key: "expense_date", label: "Date", render: (r: any) => r.expense_date?.slice(0, 10) }, { key: "expense_name", label: "Name" }, { key: "category_name", label: "Category" }, { key: "assigned_to", label: "Assigned To" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "amount", label: "Amount", render: (r: any) => rupees(r.amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setExpenseRecord(r)} />
       )}
     </div>
   );
 }
-function Reports() {
+function Reports({ config }: any) {
   const [r, setR] = useState<any>();
-  useEffect(() => {
-    api("/api/reports")
-      .then(setR)
-      .catch(() => { });
-  }, []);
-  const rows = [
-    ["Cash inflow", r?.summary?.income, "Money collected from invoices"],
-    ["Cash outflow", r?.summary?.expenses, "All recorded expenses"],
-    ["Profit / loss", r?.summary?.profit, "Inflow less expenses"],
-    ["Account aggregation", r?.summary?.sales, "Total invoice item sales"],
+  const [activeCard, setActiveCard] = useState<string | null>(null);
+  const [details, setDetails] = useState<any[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [viewRecord, setViewRecord] = useState<any>(null);
+
+  useEffect(() => { api("/api/reports").then(setR).catch(() => {}); }, []);
+
+  const cards = [
+    { key: "inflow", label: "Cash inflow", value: r?.summary?.income, color: "text-emerald-600", desc: "Money collected from invoices and advances" },
+    { key: "outflow", label: "Cash outflow", value: r?.summary?.expenses, color: "text-rose-600", desc: "All recorded expenses" },
+    { key: "profit", label: "Profit / loss", value: r?.summary?.profit, color: "text-brand-700", desc: "Inflow less expenses" },
+    { key: "sales", label: "Account aggregation", value: r?.summary?.sales, color: "text-brand-700", desc: "Total invoice item sales" },
   ];
+
+  const openCard = async (key: string) => {
+    setActiveCard(key);
+    setLoadingDetails(true);
+    try {
+      const res = await api(`/api/reports/details?type=${key}`);
+      setDetails(res.items || res);
+    } catch { setDetails([]); }
+    setLoadingDetails(false);
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Reports</h2>
-        <a href="/api/reports/export" download className="button text-sm px-4 py-1.5">Export Excel</a>
+        <div className="flex gap-2">
+          {activeCard && <button type="button" className="button-secondary text-sm px-4 py-1.5" onClick={() => setActiveCard(null)}>Back</button>}
+          <a href="/api/reports/export" download className="button text-sm px-4 py-1.5">Export Excel</a>
+        </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {rows.map(([t, v, d]) => (
-          <div className="card" key={String(t)}>
-            <p className="font-semibold">{t}</p>
-            <p className="mt-2 text-2xl font-bold text-brand-700">
-              {v === undefined ? "—" : rupees(v as number)}
-            </p>
-            <p className="text-sm text-slate-500">{d}</p>
-          </div>
-        ))}
-      </div>
-      <div className="card mt-4">
-        <h3 className="font-semibold">Sales trend (last 30 days)</h3>
-        <div className="mt-4 flex h-36 items-end gap-2">
-          {(r?.chart || []).map((x: any) => (
-            <div
-              title={`${x.label}: ${rupees(x.value)}`}
-              key={x.label}
-              className="min-w-4 flex-1 rounded-t bg-brand-500"
-              style={{
-                height: `${Math.max(8, Math.min(100, (x.value / Math.max(...r.chart.map((a: any) => a.value))) * 100))}%`,
-              }}
-            />
+      {!activeCard ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {cards.map(c => (
+            <button type="button" key={c.key} className="card text-left hover:shadow-md transition-shadow" onClick={() => openCard(c.key)}>
+              <p className="font-semibold">{c.label}</p>
+              <p className={`mt-2 text-2xl font-bold ${c.color}`}>{c.value === undefined ? "—" : rupees(c.value)}</p>
+              <p className="text-sm text-slate-500">{c.desc}</p>
+            </button>
           ))}
-          {!r?.chart?.length && (
-            <p className="text-sm text-slate-500">No sales data yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <h3 className="font-semibold text-lg">{cards.find(c => c.key === activeCard)?.label}</h3>
+          {loadingDetails ? <p>Loading...</p> : (
+            <>
+              <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="p-3 font-semibold text-slate-700">Date</th>
+                      <th className="p-3 font-semibold text-slate-700">Bill #</th>
+                      <th className="p-3 font-semibold text-slate-700">Receipt #</th>
+                      <th className="p-3 font-semibold text-slate-700">Advance Receipt #</th>
+                      <th className="p-3 font-semibold text-slate-700">Assigned To</th>
+                      <th className="p-3 font-semibold text-slate-700">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {details.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-slate-500">No records found</td></tr>}
+                    {details.map((row, i) => (
+                      <tr key={row.id || i} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewRecord(row.raw)}>
+                        <td className="p-3">{row.date?.slice(0, 10)}</td>
+                        <td className="p-3">{row.bill_number || "—"}</td>
+                        <td className="p-3">{row.receipt_number || "—"}</td>
+                        <td className="p-3">{row.advance_receipt_number || "—"}</td>
+                        <td className="p-3">{row.assigned_to || "—"}</td>
+                        <td className="p-3">{rupees(row.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="grid md:hidden gap-3">
+                {details.length === 0 && <p className="text-center text-slate-500 p-4">No records found</p>}
+                {details.map((row, i) => (
+                  <div key={row.id || i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm cursor-pointer" onClick={() => setViewRecord(row.raw)}>
+                    <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Date:</span><span>{row.date?.slice(0, 10)}</span></div>
+                    {row.bill_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Bill #:</span><span>{row.bill_number}</span></div>}
+                    {row.receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Receipt #:</span><span>{row.receipt_number}</span></div>}
+                    {row.advance_receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Advance Receipt #:</span><span>{row.advance_receipt_number}</span></div>}
+                    <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Assigned To:</span><span>{row.assigned_to || "—"}</span></div>
+                    <div className="flex justify-between text-sm font-bold"><span>Amount:</span><span>{rupees(row.amount)}</span></div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
-        <p className="mt-2 text-xs text-slate-500">
-          For Excel, use your browser’s print/export or connect a dedicated
-          export library before production launch.
-        </p>
-      </div>
+      )}
+      {viewRecord && viewRecord.type === "expense" && <ExpenseView data={viewRecord} close={() => setViewRecord(null)} />}
+      {viewRecord && viewRecord.type !== "expense" && <ReceiptView data={viewRecord} config={config} close={() => setViewRecord(null)} />}
     </div>
   );
 }
@@ -886,6 +950,7 @@ function ExpenseView({ data, close }: any) {
           </div>
           <div className="mt-4 text-sm">
             <p><b>Category:</b> {data.category_name || "Uncategorised"}</p>
+            <p><b>Payment mode:</b> {data.payment_mode === "Other" ? (data.payment_mode_other || "Other") : data.payment_mode}</p>
             {data.notes && <p><b>Notes:</b> {data.notes}</p>}
           </div>
           <div className="mt-4 space-y-1 text-sm border-t pt-2">
@@ -933,6 +998,9 @@ function ReceiptView({ data, config, close }: any) {
           <div className="mt-4 text-sm">
             <p>
               <b>Customer:</b> {data.customer_name}
+            </p>
+            <p>
+              <b>Payment mode:</b> {data.payment_mode === "Other" ? (data.payment_mode_other || "Other") : data.payment_mode}
             </p>
             {data.customer_phone && (
               <p>
@@ -1030,6 +1098,46 @@ function ReceiptView({ data, config, close }: any) {
     </div>
   );
 }
+function SelectField({ label, value, onChange, options }: any) {
+  return (
+    <label>
+      <span className="label">{label}</span>
+      <select
+        className="w-full rounded-lg border border-slate-300 p-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {options.map((o: string) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function PaymentModeField({ value, otherValue, onChange, onOtherChange }: any) {
+  return (
+    <>
+      <label>
+        <span className="label">Payment mode</span>
+        <select
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          <option value="UPI">UPI</option>
+          <option value="Cash">Cash</option>
+          <option value="Card">Card</option>
+          <option value="Other">Other</option>
+        </select>
+      </label>
+      {value === "Other" && (
+        <Field label="Specify payment mode" value={otherValue} onChange={onOtherChange} />
+      )}
+    </>
+  );
+}
+
 function Field({ label, type = "text", value, onChange, list }: any) {
   return (
     <label>
