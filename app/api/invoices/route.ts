@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, transaction } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { roundMoney } from "@/lib/money";
 export async function GET(req: Request) {
   try {
@@ -92,6 +93,8 @@ export async function POST(req: Request) {
     tax = roundMoney((subtotal * taxRate) / 100),
     discount = Math.min(number(b.discount), roundMoney(subtotal + tax)),
     total = roundMoney(subtotal + tax - discount);
+  const user = await getCurrentUser() || "system";
+  const date = b.date || new Date().toISOString().split("T")[0];
   const result = await transaction(async (c) => {
     let advance: any = null;
     if (b.advance_id) {
@@ -113,7 +116,7 @@ export async function POST(req: Request) {
     const advanceAmount = Math.min(number(advance?.advance_amount), total),
       balance = roundMoney(total - advanceAmount);
     const inv = await c.query(
-      "INSERT INTO zalish_invoices(invoice_number,customer_name,customer_phone,customer_place,subtotal,discount,tax_rate,tax_amount,grand_total,advance_id,advance_amount,balance_due) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *",
+      "INSERT INTO zalish_invoices(invoice_number,customer_name,customer_phone,customer_place,subtotal,discount,tax_rate,tax_amount,grand_total,advance_id,advance_amount,balance_due,date,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *",
       [
         invoiceNumber,
         b.customer_name,
@@ -127,6 +130,8 @@ export async function POST(req: Request) {
         advance?.id || null,
         advanceAmount,
         balance,
+        date,
+        user
       ],
     );
     for (const i of cleanItems) {
@@ -148,7 +153,12 @@ export async function POST(req: Request) {
         "UPDATE zalish_advances SET settled_invoice_id=$1 WHERE id=$2",
         [inv.rows[0].id, advance.id],
       );
-    return { ...inv.rows[0], items: cleanItems };
+    const finalInv = { ...inv.rows[0], items: cleanItems };
+    await c.query(
+      "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+      ["zalish_invoices", String(finalInv.id), "INSERT", user, JSON.stringify(finalInv)]
+    );
+    return finalInv;
   });
   return NextResponse.json(result, { status: 201 });
 }
@@ -156,10 +166,11 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
+    const user = await getCurrentUser() || "system";
     await transaction(async (c) => {
       const inv = await c.query(
-        "UPDATE zalish_invoices SET deleted_at=now() WHERE id=$1 RETURNING *",
-        [id],
+        "UPDATE zalish_invoices SET deleted_at=now(), updated_by=$1 WHERE id=$2 RETURNING *",
+        [user, id],
       );
       if (inv.rows.length === 0) throw new Error("Invoice not found");
       const invoice = inv.rows[0];
@@ -169,6 +180,10 @@ export async function DELETE(req: Request) {
           [invoice.advance_id],
         );
       }
+      await c.query(
+        "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+        ["zalish_invoices", String(id), "DELETE", user, JSON.stringify({ id, deleted_at: new Date().toISOString() })]
+      );
     });
     return new NextResponse(null, { status: 204 });
   } catch (e) {

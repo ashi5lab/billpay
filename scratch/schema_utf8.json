@@ -1,0 +1,1879 @@
+﻿{
+    "schema":  [
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "student_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "class_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "subject",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "exam_type",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "score",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "max_score",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "remarks",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "recorded_by_teacher_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "academic_performance",
+                       "column_name":  "recorded_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "academic_terms",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "academic_terms",
+                       "column_name":  "year_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "academic_terms",
+                       "column_name":  "term_name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "academic_terms",
+                       "column_name":  "start_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "academic_terms",
+                       "column_name":  "end_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "academic_terms",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "academic_years",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "academic_years",
+                       "column_name":  "year_name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "academic_years",
+                       "column_name":  "start_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "academic_years",
+                       "column_name":  "end_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "academic_years",
+                       "column_name":  "is_active",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "academic_years",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "access_group_permissions",
+                       "column_name":  "access_group_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "access_group_permissions",
+                       "column_name":  "permission_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "access_group_roles",
+                       "column_name":  "access_group_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "access_group_roles",
+                       "column_name":  "role_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "access_groups",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "access_groups",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "access_groups",
+                       "column_name":  "description",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "access_groups",
+                       "column_name":  "is_system",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "access_groups",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "reference_id",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "student_name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "email",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "mobile_number",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "form_data",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "status",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "verification",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "school_ref",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "audit_log",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "admission",
+                       "column_name":  "mgmt_point",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "announcements",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "announcements",
+                       "column_name":  "title",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "announcements",
+                       "column_name":  "message",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "announcements",
+                       "column_name":  "target_role",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "announcements",
+                       "column_name":  "created_by",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "announcements",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "app_preferences",
+                       "column_name":  "key",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "app_preferences",
+                       "column_name":  "value",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "app_preferences",
+                       "column_name":  "updated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "attendance",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "attendance",
+                       "column_name":  "student_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "attendance",
+                       "column_name":  "date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "attendance",
+                       "column_name":  "status",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "attendance",
+                       "column_name":  "marked_at",
+                       "data_type":  "timestamp without time zone"
+                   },
+                   {
+                       "table_name":  "attendance",
+                       "column_name":  "marked_by",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "audit_logs",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "audit_logs",
+                       "column_name":  "user_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "audit_logs",
+                       "column_name":  "username",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "audit_logs",
+                       "column_name":  "action",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "audit_logs",
+                       "column_name":  "details",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "audit_logs",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "banner",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "banner",
+                       "column_name":  "image_url",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "banner",
+                       "column_name":  "alt_text",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "banner",
+                       "column_name":  "sort_order",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "banner",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "title",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "slug",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "template",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "cover_image",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "content",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "excerpt",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "author_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "status",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "rejection_reason",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "reviewer_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "reviewed_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "published_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "updated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "blogs",
+                       "column_name":  "delete_requested",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "calendar_events",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "calendar_events",
+                       "column_name":  "academic_year_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "calendar_events",
+                       "column_name":  "title",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "calendar_events",
+                       "column_name":  "description",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "calendar_events",
+                       "column_name":  "event_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "calendar_events",
+                       "column_name":  "event_type",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "calendar_events",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "classes",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "classes",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "classes",
+                       "column_name":  "description",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "classes",
+                       "column_name":  "teacher_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "classes",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "compliance_logs",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "compliance_logs",
+                       "column_name":  "title",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "compliance_logs",
+                       "column_name":  "description",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "compliance_logs",
+                       "column_name":  "status",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "compliance_logs",
+                       "column_name":  "recorded_by",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "compliance_logs",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "email",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "mobile_number",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "title",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "content",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "status",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "is_read",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "remarks",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "audit_log",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "contact_desk",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "department",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "department",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "department",
+                       "column_name":  "description",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "department",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "exam_results",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "exam_results",
+                       "column_name":  "exam_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "exam_results",
+                       "column_name":  "student_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "exam_results",
+                       "column_name":  "subject",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "exam_results",
+                       "column_name":  "marks_obtained",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "exam_results",
+                       "column_name":  "total_marks",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "exam_results",
+                       "column_name":  "grade",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "exam_results",
+                       "column_name":  "recorded_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "exam_results",
+                       "column_name":  "is_absent",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "exams",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "exams",
+                       "column_name":  "exam_name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "exams",
+                       "column_name":  "start_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "exams",
+                       "column_name":  "end_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "exams",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "exams",
+                       "column_name":  "class_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "exams",
+                       "column_name":  "max_marks",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "exams",
+                       "column_name":  "subject",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "exams",
+                       "column_name":  "is_published",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "gallery",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "gallery",
+                       "column_name":  "image_url",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "gallery",
+                       "column_name":  "description",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "gallery",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp without time zone"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "title",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "mobile_number",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "message",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "email",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "application_number",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "status",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "remarks",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "audit_log",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "helpdesk",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "leave_requests",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "leave_requests",
+                       "column_name":  "user_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "leave_requests",
+                       "column_name":  "start_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "leave_requests",
+                       "column_name":  "end_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "leave_requests",
+                       "column_name":  "reason",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "leave_requests",
+                       "column_name":  "status",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "leave_requests",
+                       "column_name":  "reviewed_by",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "leave_requests",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "marks",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "marks",
+                       "column_name":  "student_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "marks",
+                       "column_name":  "subject",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "marks",
+                       "column_name":  "score",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "marks",
+                       "column_name":  "total",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "marks",
+                       "column_name":  "exam_name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "marks",
+                       "column_name":  "date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "marks",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "message_recipients",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "message_recipients",
+                       "column_name":  "message_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "message_recipients",
+                       "column_name":  "recipient_user_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "message_recipients",
+                       "column_name":  "class_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "message_recipients",
+                       "column_name":  "read_status",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "message_recipients",
+                       "column_name":  "read_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "messages",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "messages",
+                       "column_name":  "sender_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "messages",
+                       "column_name":  "title",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "messages",
+                       "column_name":  "content",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "messages",
+                       "column_name":  "attachments",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "messages",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "news",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "news",
+                       "column_name":  "title",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "news",
+                       "column_name":  "content",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "news",
+                       "column_name":  "image_url",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "news",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp without time zone"
+                   },
+                   {
+                       "table_name":  "news",
+                       "column_name":  "type",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "news",
+                       "column_name":  "is_deleted",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "parent_messages",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "parent_messages",
+                       "column_name":  "student_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "parent_messages",
+                       "column_name":  "sender_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "parent_messages",
+                       "column_name":  "subject",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "parent_messages",
+                       "column_name":  "message_body",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "parent_messages",
+                       "column_name":  "sent_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "permissions",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "permissions",
+                       "column_name":  "code",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "permissions",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "permissions",
+                       "column_name":  "module",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "permissions",
+                       "column_name":  "description",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "permissions",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "renewmq",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "renewmq",
+                       "column_name":  "admission_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "renewmq",
+                       "column_name":  "preference",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "renewmq",
+                       "column_name":  "verified",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "renewmq",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp without time zone"
+                   },
+                   {
+                       "table_name":  "renewmq",
+                       "column_name":  "second_preference",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "preference",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "included_streams",
+                       "data_type":  "ARRAY"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "sort_criteria",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "is_published",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "last_generated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "created_by",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "updated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "tiebreaker_config",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "core_subjects_config",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "waiting_list_start",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_definitions",
+                       "column_name":  "is_renewal",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "ranklist_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "admission_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "rank",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "wgpa",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "english_mark",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "preference_position",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "computed_fields",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "is_manual_wgpa",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "rl_entries",
+                       "column_name":  "updated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "rl_lookup_config",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_lookup_config",
+                       "column_name":  "visible_fields",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "rl_lookup_config",
+                       "column_name":  "updated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "rl_manual_wgpa",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_manual_wgpa",
+                       "column_name":  "admission_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_manual_wgpa",
+                       "column_name":  "preference",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "rl_manual_wgpa",
+                       "column_name":  "wgpa",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "rl_manual_wgpa",
+                       "column_name":  "english_mark",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "rl_manual_wgpa",
+                       "column_name":  "notes",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "rl_manual_wgpa",
+                       "column_name":  "updated_by",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_manual_wgpa",
+                       "column_name":  "updated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "stream",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "preference",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "formula_fields",
+                       "data_type":  "jsonb"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "total_divisor",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "description",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "is_active",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "created_by",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "rl_wgpa_formulas",
+                       "column_name":  "updated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "roles",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "roles",
+                       "column_name":  "slug",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "roles",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "roles",
+                       "column_name":  "description",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "roles",
+                       "column_name":  "is_system",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "roles",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "staff_records",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "staff_records",
+                       "column_name":  "user_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "staff_records",
+                       "column_name":  "role_title",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "staff_records",
+                       "column_name":  "salary",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "staff_records",
+                       "column_name":  "hire_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "staff_records",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "user_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "class_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "roll_number",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "mobile_number",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "parents_name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "address",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "second_language",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "dob",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "gender",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "blood_group",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "student",
+                       "column_name":  "email",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "teacher",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "teacher",
+                       "column_name":  "user_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "teacher",
+                       "column_name":  "name",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "teacher",
+                       "column_name":  "subject",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "teacher",
+                       "column_name":  "department_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "teacher",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "teacher_class_relations",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "teacher_class_relations",
+                       "column_name":  "teacher_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "teacher_class_relations",
+                       "column_name":  "class_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "teacher_class_relations",
+                       "column_name":  "subject",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "teacher_class_relations",
+                       "column_name":  "is_class_teacher",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "teacher_class_relations",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "class_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "term_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "day_of_week",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "period_number",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "subject",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "teacher_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "start_time",
+                       "data_type":  "time without time zone"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "end_time",
+                       "data_type":  "time without time zone"
+                   },
+                   {
+                       "table_name":  "timetables",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "username",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "password_hash",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "role",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "registration_year",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "access_group_id",
+                       "data_type":  "integer"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "is_superuser",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "must_change_password",
+                       "data_type":  "boolean"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "address",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "users",
+                       "column_name":  "phone_number",
+                       "data_type":  "character varying"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "receipt_number",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "customer_name",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "customer_phone",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "customer_place",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "advance_amount",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "notes",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "issued_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "settled_invoice_id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_advances",
+                       "column_name":  "deleted_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_expense_categories",
+                       "column_name":  "id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_expense_categories",
+                       "column_name":  "name",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_expense_categories",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_expense_categories",
+                       "column_name":  "deleted_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_expenses",
+                       "column_name":  "id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_expenses",
+                       "column_name":  "expense_name",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_expenses",
+                       "column_name":  "category_id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_expenses",
+                       "column_name":  "amount",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_expenses",
+                       "column_name":  "expense_date",
+                       "data_type":  "date"
+                   },
+                   {
+                       "table_name":  "zalish_expenses",
+                       "column_name":  "notes",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_expenses",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_expenses",
+                       "column_name":  "deleted_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_invoice_items",
+                       "column_name":  "id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_invoice_items",
+                       "column_name":  "invoice_id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_invoice_items",
+                       "column_name":  "item_id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_invoice_items",
+                       "column_name":  "item_name",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_invoice_items",
+                       "column_name":  "quantity",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoice_items",
+                       "column_name":  "unit_price",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoice_items",
+                       "column_name":  "line_total",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "invoice_number",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "customer_name",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "customer_phone",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "customer_place",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "subtotal",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "discount",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "tax_rate",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "tax_amount",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "grand_total",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "advance_id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "advance_amount",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "balance_due",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_invoices",
+                       "column_name":  "deleted_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_items",
+                       "column_name":  "id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_items",
+                       "column_name":  "name",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_items",
+                       "column_name":  "default_price",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_items",
+                       "column_name":  "cost_price",
+                       "data_type":  "numeric"
+                   },
+                   {
+                       "table_name":  "zalish_items",
+                       "column_name":  "category",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_items",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_items",
+                       "column_name":  "updated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_items",
+                       "column_name":  "deleted_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_store_config",
+                       "column_name":  "id",
+                       "data_type":  "smallint"
+                   },
+                   {
+                       "table_name":  "zalish_store_config",
+                       "column_name":  "store_name",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_store_config",
+                       "column_name":  "address",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_store_config",
+                       "column_name":  "contact_number",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_store_config",
+                       "column_name":  "gstin",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_store_config",
+                       "column_name":  "updated_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_users",
+                       "column_name":  "id",
+                       "data_type":  "uuid"
+                   },
+                   {
+                       "table_name":  "zalish_users",
+                       "column_name":  "name",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_users",
+                       "column_name":  "email",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_users",
+                       "column_name":  "password_hash",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_users",
+                       "column_name":  "role",
+                       "data_type":  "text"
+                   },
+                   {
+                       "table_name":  "zalish_users",
+                       "column_name":  "created_at",
+                       "data_type":  "timestamp with time zone"
+                   },
+                   {
+                       "table_name":  "zalish_users",
+                       "column_name":  "deleted_at",
+                       "data_type":  "timestamp with time zone"
+                   }
+               ]
+}

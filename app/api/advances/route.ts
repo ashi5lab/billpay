@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { transaction } from "@/lib/db";
+import { db, transaction } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 function number(prefix: string, date = new Date()) {
   const y = date.getFullYear(),
     m = String(date.getMonth() + 1).padStart(2, "0"),
@@ -59,6 +59,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const b = await req.json();
+  const user = await getCurrentUser() || "system";
+  const date = b.date || new Date().toISOString().split("T")[0];
   const result = await transaction(async (c) => {
     const day = number("ZA");
     const { rows: seq } = await c.query(
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
     );
     const receipt = `${day}/${Number(seq[0].count) + 1}`;
     const { rows } = await c.query(
-      "INSERT INTO zalish_advances(receipt_number,customer_name,customer_phone,customer_place,advance_amount,notes) VALUES($1,$2,$3,$4,$5,$6) RETURNING *",
+      "INSERT INTO zalish_advances(receipt_number,customer_name,customer_phone,customer_place,advance_amount,notes,date,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
       [
         receipt,
         b.customer_name,
@@ -75,9 +77,16 @@ export async function POST(req: Request) {
         b.customer_place || null,
         b.advance_amount,
         b.notes || null,
+        date,
+        user
       ],
     );
-    return rows[0];
+    const advance = rows[0];
+    await c.query(
+      "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+      ["zalish_advances", String(advance.id), "INSERT", user, JSON.stringify(advance)]
+    );
+    return advance;
   });
   return NextResponse.json(result, { status: 201 });
 }
@@ -86,19 +95,30 @@ export async function PATCH(req: Request) {
   try {
     const b = await req.json();
     if (!b.id) throw new Error("Advance ID is required");
-    const { rows } = await db.query(
-      "UPDATE zalish_advances SET customer_name=$1, customer_phone=$2, customer_place=$3, advance_amount=$4, notes=$5 WHERE id=$6 AND deleted_at IS NULL AND settled_invoice_id IS NULL RETURNING *",
-      [
-        b.customer_name,
-        b.customer_phone || null,
-        b.customer_place || null,
-        b.advance_amount,
-        b.notes || null,
-        b.id,
-      ],
-    );
-    if (!rows[0]) throw new Error("Advance not found or already settled");
-    return NextResponse.json(rows[0]);
+    const user = await getCurrentUser() || "system";
+    const date = b.date || new Date().toISOString().split("T")[0];
+    const advance = await transaction(async (c) => {
+      const { rows } = await c.query(
+        "UPDATE zalish_advances SET customer_name=$1, customer_phone=$2, customer_place=$3, advance_amount=$4, notes=$5, date=$6, updated_by=$7 WHERE id=$8 AND deleted_at IS NULL AND settled_invoice_id IS NULL RETURNING *",
+        [
+          b.customer_name,
+          b.customer_phone || null,
+          b.customer_place || null,
+          b.advance_amount,
+          b.notes || null,
+          date,
+          user,
+          b.id,
+        ],
+      );
+      if (!rows[0]) throw new Error("Advance not found or already settled");
+      await c.query(
+        "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+        ["zalish_advances", String(rows[0].id), "UPDATE", user, JSON.stringify(rows[0])]
+      );
+      return rows[0];
+    });
+    return NextResponse.json(advance);
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Error updating advance" },
@@ -110,11 +130,18 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
-    const { rowCount } = await db.query(
-      "UPDATE zalish_advances SET deleted_at=now() WHERE id=$1 AND settled_invoice_id IS NULL",
-      [id],
-    );
-    if (rowCount === 0) throw new Error("Advance not found or already settled");
+    const user = await getCurrentUser() || "system";
+    await transaction(async (c) => {
+      const { rowCount } = await c.query(
+        "UPDATE zalish_advances SET deleted_at=now(), updated_by=$1 WHERE id=$2 AND settled_invoice_id IS NULL",
+        [user, id],
+      );
+      if (rowCount === 0) throw new Error("Advance not found or already settled");
+      await c.query(
+        "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+        ["zalish_advances", String(id), "DELETE", user, JSON.stringify({ id, deleted_at: new Date().toISOString() })]
+      );
+    });
     return new NextResponse(null, { status: 204 });
   } catch (e) {
     return NextResponse.json(

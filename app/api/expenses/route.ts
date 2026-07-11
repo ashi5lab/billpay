@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { db, transaction } from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 const error = (e: unknown) =>
   NextResponse.json(
     { error: e instanceof Error ? e.message : "Unable to save expense" },
@@ -59,17 +60,28 @@ export async function POST(req: Request) {
       throw new Error("Expense name is required");
     if (!Number.isFinite(amount) || amount <= 0)
       throw new Error("Expense amount must be greater than zero");
-    const { rows } = await db.query(
-      "INSERT INTO zalish_expenses(expense_name,category_id,amount,expense_date,notes) VALUES($1,$2,$3,$4,$5) RETURNING *",
-      [
-        b.expense_name.trim(),
-        b.category_id || null,
-        amount,
-        b.expense_date || new Date().toISOString().slice(0, 10),
-        b.notes || null,
-      ],
-    );
-    return NextResponse.json(rows[0], { status: 201 });
+    const user = await getCurrentUser() || "system";
+    const date = b.date || b.expense_date || new Date().toISOString().slice(0, 10);
+    const row = await transaction(async (c) => {
+      const { rows } = await c.query(
+        "INSERT INTO zalish_expenses(expense_name,category_id,amount,expense_date,date,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *",
+        [
+          b.expense_name.trim(),
+          b.category_id || null,
+          amount,
+          date,
+          date,
+          b.notes || null,
+          user
+        ],
+      );
+      await c.query(
+        "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+        ["zalish_expenses", String(rows[0].id), "INSERT", user, JSON.stringify(rows[0])]
+      );
+      return rows[0];
+    });
+    return NextResponse.json(row, { status: 201 });
   } catch (e) {
     return error(e);
   }
@@ -85,19 +97,30 @@ export async function PATCH(req: Request) {
       throw new Error("Expense amount must be greater than zero");
     if (!b.id) throw new Error("Expense ID is required");
 
-    const { rows } = await db.query(
-      "UPDATE zalish_expenses SET expense_name=$1, category_id=$2, amount=$3, expense_date=$4, notes=$5 WHERE id=$6 AND deleted_at IS NULL RETURNING *",
-      [
-        b.expense_name.trim(),
-        b.category_id || null,
-        amount,
-        b.expense_date || new Date().toISOString().slice(0, 10),
-        b.notes || null,
-        b.id,
-      ],
-    );
-    if (!rows[0]) throw new Error("Expense not found");
-    return NextResponse.json(rows[0]);
+    const user = await getCurrentUser() || "system";
+    const date = b.date || b.expense_date || new Date().toISOString().slice(0, 10);
+    const row = await transaction(async (c) => {
+      const { rows } = await c.query(
+        "UPDATE zalish_expenses SET expense_name=$1, category_id=$2, amount=$3, expense_date=$4, notes=$5, date=$6, updated_by=$7 WHERE id=$8 AND deleted_at IS NULL RETURNING *",
+        [
+          b.expense_name.trim(),
+          b.category_id || null,
+          amount,
+          date,
+          b.notes || null,
+          date,
+          user,
+          b.id,
+        ],
+      );
+      if (!rows[0]) throw new Error("Expense not found");
+      await c.query(
+        "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+        ["zalish_expenses", String(rows[0].id), "UPDATE", user, JSON.stringify(rows[0])]
+      );
+      return rows[0];
+    });
+    return NextResponse.json(row);
   } catch (e) {
     return error(e);
   }
@@ -106,9 +129,16 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();
-    await db.query("UPDATE zalish_expenses SET deleted_at=now() WHERE id=$1", [
-      id,
-    ]);
+    const user = await getCurrentUser() || "system";
+    await transaction(async (c) => {
+      await c.query("UPDATE zalish_expenses SET deleted_at=now(), updated_by=$1 WHERE id=$2", [
+        user, id,
+      ]);
+      await c.query(
+        "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+        ["zalish_expenses", String(id), "DELETE", user, JSON.stringify({ id, deleted_at: new Date().toISOString() })]
+      );
+    });
     return new NextResponse(null, { status: 204 });
   } catch (e) {
     return error(e);
