@@ -21,11 +21,11 @@ export async function GET(req: Request) {
       paramCount++;
     }
     if (startDate) {
-      whereClause += ` AND created_at >= $${paramCount++}`;
+      whereClause += ` AND date >= $${paramCount++}`;
       params.push(startDate);
     }
     if (endDate) {
-      whereClause += ` AND created_at <= $${paramCount++}`;
+      whereClause += ` AND date <= $${paramCount++}`;
       params.push(endDate);
     }
 
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
     const advanceAmount = Math.min(number(advance?.advance_amount), total),
       balance = roundMoney(total - advanceAmount);
     const inv = await c.query(
-      "INSERT INTO zalish_invoices(invoice_number,customer_name,customer_phone,customer_place,subtotal,discount,tax_rate,tax_amount,grand_total,advance_id,advance_amount,balance_due,date,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *",
+      "INSERT INTO zalish_invoices(invoice_number,customer_name,customer_phone,customer_place,subtotal,discount,tax_rate,tax_amount,grand_total,advance_id,advance_amount,balance_due,date,created_by,assigned_to) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *",
       [
         invoiceNumber,
         b.customer_name,
@@ -128,10 +128,10 @@ export async function POST(req: Request) {
         tax,
         total,
         advance?.id || null,
-        advanceAmount,
         balance,
         date,
-        user
+        user,
+        b.assigned_to || null
       ],
     );
     for (const i of cleanItems) {

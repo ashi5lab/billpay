@@ -25,11 +25,11 @@ export async function GET(req: Request) {
       params.push(`%${search}%`);
     }
     if (startDate) {
-      whereClause += ` AND e.expense_date >= $${paramCount++}`;
+      whereClause += ` AND e.date >= $${paramCount++}`;
       params.push(startDate);
     }
     if (endDate) {
-      whereClause += ` AND e.expense_date <= $${paramCount++}`;
+      whereClause += ` AND e.date <= $${paramCount++}`;
       params.push(endDate);
     }
 
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     const date = b.date || b.expense_date || new Date().toISOString().slice(0, 10);
     const row = await transaction(async (c) => {
       const { rows } = await c.query(
-        "INSERT INTO zalish_expenses(expense_name,category_id,amount,expense_date,date,notes,created_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *",
+        "INSERT INTO zalish_expenses(expense_name,category_id,amount,expense_date,date,notes,created_by,assigned_to) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
         [
           b.expense_name.trim(),
           b.category_id || null,
@@ -72,7 +72,8 @@ export async function POST(req: Request) {
           date,
           date,
           b.notes || null,
-          user
+          user,
+          b.assigned_to || null
         ],
       );
       await c.query(
@@ -101,7 +102,7 @@ export async function PATCH(req: Request) {
     const date = b.date || b.expense_date || new Date().toISOString().slice(0, 10);
     const row = await transaction(async (c) => {
       const { rows } = await c.query(
-        "UPDATE zalish_expenses SET expense_name=$1, category_id=$2, amount=$3, expense_date=$4, notes=$5, date=$6, updated_by=$7 WHERE id=$8 AND deleted_at IS NULL RETURNING *",
+        "UPDATE zalish_expenses SET expense_name=$1, category_id=$2, amount=$3, expense_date=$4, notes=$5, date=$6, updated_by=$7, assigned_to=$8 WHERE id=$9 AND deleted_at IS NULL RETURNING *",
         [
           b.expense_name.trim(),
           b.category_id || null,
@@ -110,6 +111,7 @@ export async function PATCH(req: Request) {
           b.notes || null,
           date,
           user,
+          b.assigned_to || null,
           b.id,
         ],
       );

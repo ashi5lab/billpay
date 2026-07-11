@@ -27,15 +27,15 @@ export async function GET(req: Request) {
       paramCount++;
     }
     if (startDate) {
-      whereClause += ` AND issued_at >= $${paramCount++}`;
+      whereClause += ` AND date >= $${paramCount++}`;
       params.push(startDate);
     }
     if (endDate) {
-      whereClause += ` AND issued_at <= $${paramCount++}`;
+      whereClause += ` AND date <= $${paramCount++}`;
       params.push(endDate);
     }
 
-    const query = `SELECT * FROM zalish_advances WHERE ${whereClause} ORDER BY issued_at DESC LIMIT $1 OFFSET $2`;
+    const query = `SELECT * FROM zalish_advances WHERE ${whereClause} ORDER BY date DESC LIMIT $1 OFFSET $2`;
     const countQuery = `SELECT count(*) FROM zalish_advances WHERE ${whereClause.replace(/\$(\d+)/g, (m, n) => `$${Number(n) - 2}`)}`;
 
     const [items, count] = await Promise.all([
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
     );
     const receipt = `${day}/${Number(seq[0].count) + 1}`;
     const { rows } = await c.query(
-      "INSERT INTO zalish_advances(receipt_number,customer_name,customer_phone,customer_place,advance_amount,notes,date,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
+      "INSERT INTO zalish_advances(receipt_number,customer_name,customer_phone,customer_place,advance_amount,notes,date,created_by,assigned_to) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *",
       [
         receipt,
         b.customer_name,
@@ -78,7 +78,8 @@ export async function POST(req: Request) {
         b.advance_amount,
         b.notes || null,
         date,
-        user
+        user,
+        b.assigned_to || null
       ],
     );
     const advance = rows[0];
@@ -99,7 +100,7 @@ export async function PATCH(req: Request) {
     const date = b.date || new Date().toISOString().split("T")[0];
     const advance = await transaction(async (c) => {
       const { rows } = await c.query(
-        "UPDATE zalish_advances SET customer_name=$1, customer_phone=$2, customer_place=$3, advance_amount=$4, notes=$5, date=$6, updated_by=$7 WHERE id=$8 AND deleted_at IS NULL AND settled_invoice_id IS NULL RETURNING *",
+        "UPDATE zalish_advances SET customer_name=$1, customer_phone=$2, customer_place=$3, advance_amount=$4, notes=$5, date=$6, updated_by=$7, assigned_to=$8 WHERE id=$9 AND deleted_at IS NULL AND settled_invoice_id IS NULL RETURNING *",
         [
           b.customer_name,
           b.customer_phone || null,
@@ -108,6 +109,7 @@ export async function PATCH(req: Request) {
           b.notes || null,
           date,
           user,
+          b.assigned_to || null,
           b.id,
         ],
       );

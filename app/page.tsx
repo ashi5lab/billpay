@@ -46,6 +46,7 @@ export default function App() {
   const [view, setView] = useState("dashboard"),
     [items, setItems] = useState<Item[]>([]),
     [categories, setCategories] = useState<any[]>([]),
+    [staff, setStaff] = useState<any[]>([]),
     [config, setConfig] = useState<any>({
       store_name: "Zalish Boutique",
       address: "",
@@ -62,14 +63,16 @@ export default function App() {
   };
   const load = async () => {
     try {
-      const [i, c, s] = await Promise.all([
+      const [i, c, s, st] = await Promise.all([
         api("/api/catalog/items"),
         api("/api/catalog/categories"),
         api("/api/config"),
+        api("/api/staff"),
       ]);
       setItems(i);
       setCategories(c);
       setConfig(s);
+      setStaff(st);
     } catch {
       notify("Unable to load store data.");
     }
@@ -98,10 +101,10 @@ export default function App() {
       />
     );
   const select = (id: string) => {
-      setView(id);
-      setMenuOpen(false);
-    },
-    props = { items, categories, config, notify, reload: load, setReceipt, setExpenseRecord };
+    setView(id);
+    setMenuOpen(false);
+  },
+    props = { items, categories, staff, config, notify, reload: load, setReceipt, setExpenseRecord };
   return (
     <main className="min-h-screen pb-20">
       <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
@@ -349,13 +352,14 @@ function Dashboard({ notify }: any) {
     </>
   );
 }
-function Billing({ items, config, notify, setReceipt }: any) {
+function Billing({ items, config, notify, setReceipt, staff }: any) {
   const [tab, setTab] = useState("create");
   const [lines, setLines] = useState([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
   const [customer, setCustomer] = useState({ name: "", phone: "", place: "" });
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
-  const [discount, setDiscount] = useState(0);
-  const [tax, setTax] = useState(0);
+  const [assignedTo, setAssignedTo] = useState("");
+  const [discount, setDiscount] = useState<any>("");
+  const [tax, setTax] = useState<any>("");
   const [query, setQuery] = useState("");
   const [advances, setAdvances] = useState<Advance[]>([]);
   const [selected, setSelected] = useState<Advance | null>(null);
@@ -363,7 +367,7 @@ function Billing({ items, config, notify, setReceipt }: any) {
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   useEffect(() => {
-    const t = setTimeout(() => query.trim() ? api(`/api/advances?q=${encodeURIComponent(query)}`).then((res: any) => setAdvances(res.items || res)).catch(() => {}) : setAdvances([]), 350);
+    const t = setTimeout(() => query.trim() ? api(`/api/advances?q=${encodeURIComponent(query)}`).then((res: any) => setAdvances(res.items || res)).catch(() => { }) : setAdvances([]), 350);
     return () => clearTimeout(t);
   }, [query]);
 
@@ -388,14 +392,15 @@ function Billing({ items, config, notify, setReceipt }: any) {
     }
     setSaving(true);
     try {
-      const result = await api("/api/invoices", { method: "POST", body: JSON.stringify({ customer_name: customer.name, customer_phone: customer.phone, customer_place: customer.place, date: invoiceDate, items: lines, discount: discountAmount, tax_rate: amount(tax), advance_id: selected?.id }) });
+      const result = await api("/api/invoices", { method: "POST", body: JSON.stringify({ customer_name: customer.name, customer_phone: customer.phone, customer_place: customer.place, date: invoiceDate, assigned_to: assignedTo, items: lines, discount: discountAmount, tax_rate: amount(tax), advance_id: selected?.id }) });
       setReceipt({ ...result, type: "invoice" });
       notify("Invoice created successfully.");
       setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
       setCustomer({ name: "", phone: "", place: "" });
       setInvoiceDate(new Date().toISOString().slice(0, 10));
-      setDiscount(0);
-      setTax(0);
+      setAssignedTo("");
+      setDiscount("");
+      setTax("");
       setQuery("");
       setSelected(null);
       setReloadTrigger(x => x + 1);
@@ -424,17 +429,19 @@ function Billing({ items, config, notify, setReceipt }: any) {
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Billing</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab==="create"?"bg-white text-brand-700 shadow":"text-slate-600 hover:text-slate-900"}`} onClick={()=>setTab("create")}>Create Invoice</button>
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab==="manage"?"bg-white text-brand-700 shadow":"text-slate-600 hover:text-slate-900"}`} onClick={()=>setTab("manage")}>Manage</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("create")}>Create Invoice</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
       {tab === "create" ? (
         <form onSubmit={submit} className="space-y-4">
-          <div className="card grid gap-3 sm:grid-cols-4">
+          <datalist id="staff-list">{staff.map((s: string) => <option key={s} value={s} />)}</datalist>
+          <div className="card grid gap-3 sm:grid-cols-5">
             <Field label="Customer name *" value={customer.name} onChange={(v: any) => setCustomer({ ...customer, name: v })} />
             <Field label="Phone (optional)" type="tel" value={customer.phone} onChange={(v: any) => setCustomer({ ...customer, phone: v })} />
             <Field label="Place (optional)" value={customer.place} onChange={(v: any) => setCustomer({ ...customer, place: v })} />
             <Field label="Date" type="date" value={invoiceDate} onChange={(v: any) => setInvoiceDate(v)} />
+            <Field label="Assigned To" value={assignedTo} onChange={setAssignedTo} list="staff-list" />
           </div>
           <div className="card space-y-3">
             <div className="flex items-center justify-between">
@@ -483,14 +490,14 @@ function Billing({ items, config, notify, setReceipt }: any) {
           <button disabled={saving} className="button w-full">{saving ? "Creating…" : "Create invoice"}</button>
         </form>
       ) : (
-        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{key:"invoice_number",label:"Inv #"},{key:"created_at",label:"Date",render:(r:any)=>r.created_at?.slice(0,10)},{key:"customer_name",label:"Customer"},{key:"grand_total",label:"Total",render:(r:any)=>rupees(r.grand_total)}]} onRowClick={viewReceipt} onDelete={remove} />
+        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} />
       )}
     </div>
   );
 }
-function AdvanceForm({ notify, setReceipt }: any) {
+function AdvanceForm({ notify, setReceipt, staff }: any) {
   const [tab, setTab] = useState("create");
-  const [f, setF] = useState<any>({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10) });
+  const [f, setF] = useState<any>({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "" });
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
   const submit = async (e: FormEvent) => {
@@ -505,12 +512,12 @@ function AdvanceForm({ notify, setReceipt }: any) {
         notify("Advance receipt created.");
       }
       setReceipt({ ...r, type: "advance" });
-      setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10) });
+      setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "" });
       setReloadTrigger(x => x + 1);
       setTab("manage");
     } catch (e: any) { notify(e.message); }
   };
-  const edit = (row: any) => { setF({ id: row.id, customer_name: row.customer_name, customer_phone: row.customer_phone || "", customer_place: row.customer_place || "", advance_amount: row.advance_amount, notes: row.notes || "", date: row.issued_at?.slice(0, 10) || row.date || new Date().toISOString().slice(0, 10) }); setTab("create"); };
+  const edit = (row: any) => { setF({ id: row.id, customer_name: row.customer_name, customer_phone: row.customer_phone || "", customer_place: row.customer_place || "", advance_amount: row.advance_amount, notes: row.notes || "", date: row.issued_at?.slice(0, 10) || row.date || new Date().toISOString().slice(0, 10), assigned_to: row.assigned_to || "" }); setTab("create"); };
   const remove = async (row: any) => { await api("/api/advances", { method: "DELETE", body: JSON.stringify({ id: row.id }) }); setReloadTrigger(x => x + 1); notify("Advance deleted."); };
 
   return (
@@ -518,24 +525,26 @@ function AdvanceForm({ notify, setReceipt }: any) {
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Advance Receipts</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab==="create"?"bg-white text-brand-700 shadow":"text-slate-600 hover:text-slate-900"}`} onClick={()=>{setTab("create"); setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10) });}}>Create Advance</button>
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab==="manage"?"bg-white text-brand-700 shadow":"text-slate-600 hover:text-slate-900"}`} onClick={()=>setTab("manage")}>Manage</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "" }); }}>Create Advance</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
       {tab === "create" ? (
         <form onSubmit={submit} className="space-y-4">
+          <datalist id="staff-list-adv">{staff.map((s: string) => <option key={s} value={s} />)}</datalist>
           <div className="card grid gap-3 sm:grid-cols-2">
             <Field label="Customer name *" value={f.customer_name} onChange={(v: any) => setF({ ...f, customer_name: v })} />
             <Field label="Advance amount (₹) *" type="number" value={f.advance_amount} onChange={(v: any) => setF({ ...f, advance_amount: v })} />
             <Field label="Phone" value={f.customer_phone} onChange={(v: any) => setF({ ...f, customer_phone: v })} />
             <Field label="Place" value={f.customer_place} onChange={(v: any) => setF({ ...f, customer_place: v })} />
             <Field label="Date" type="date" value={f.date} onChange={(v: any) => setF({ ...f, date: v })} />
+            <Field label="Assigned To" value={f.assigned_to} onChange={(v: any) => setF({ ...f, assigned_to: v })} list="staff-list-adv" />
           </div>
           <Field label="Notes" value={f.notes} onChange={(v: any) => setF({ ...f, notes: v })} />
           <button className="button w-full">{f.id ? "Update advance" : "Create advance receipt"}</button>
         </form>
       ) : (
-        <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{key:"receipt_number",label:"Receipt #"},{key:"issued_at",label:"Date",render:(r:any)=>r.issued_at?.slice(0,10)},{key:"customer_name",label:"Customer"},{key:"advance_amount",label:"Amount",render:(r:any)=>rupees(r.advance_amount)}]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} />
+        <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{ key: "receipt_number", label: "Receipt #" }, { key: "issued_at", label: "Date", render: (r: any) => r.issued_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_amount", label: "Amount", render: (r: any) => rupees(r.advance_amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} />
       )}
     </div>
   );
@@ -570,8 +579,8 @@ function Inventory({ items, reload, notify }: any) {
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Inventory</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab==="create"?"bg-white text-brand-700 shadow":"text-slate-600 hover:text-slate-900"}`} onClick={()=>{setTab("create"); setF({id:"",name:"",default_price:""});}}>Add Item</button>
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab==="manage"?"bg-white text-brand-700 shadow":"text-slate-600 hover:text-slate-900"}`} onClick={()=>setTab("manage")}>Manage</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", name: "", default_price: "" }); }}>Add Item</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
       {tab === "create" ? (
@@ -581,17 +590,17 @@ function Inventory({ items, reload, notify }: any) {
           <button className="button">{f.id ? "Update item" : "Add item"}</button>
         </form>
       ) : (
-        <DataTable endpoint="/api/catalog/items" filterDate={false} reloadTrigger={reloadTrigger} columns={[{key:"name",label:"Name"},{key:"default_price",label:"Price",render:(r:any)=>rupees(r.default_price)}]} onEdit={edit} onDelete={remove} />
+        <DataTable endpoint="/api/catalog/items" filterDate={false} reloadTrigger={reloadTrigger} columns={[{ key: "name", label: "Name" }, { key: "default_price", label: "Price", render: (r: any) => rupees(r.default_price) }]} onEdit={edit} onDelete={remove} />
       )}
     </div>
   );
 }
-function Expenses({ categories, reload, notify, setExpenseRecord }: any) {
+function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) {
   const [tab, setTab] = useState("create");
-  const [f, setF] = useState<any>({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "" });
+  const [f, setF] = useState<any>({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", assigned_to: "" });
   const [cat, setCat] = useState("");
   const [reloadTrigger, setReloadTrigger] = useState(0);
-  
+
   const [editCat, setEditCat] = useState<any>(null);
   const [catName, setCatName] = useState("");
   const [confirmCatDelete, setConfirmCatDelete] = useState(false);
@@ -614,7 +623,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord }: any) {
   const addCategory = async () => {
     try { if (!cat.trim()) return; await api("/api/catalog/categories", { method: "POST", body: JSON.stringify({ name: cat }) }); setCat(""); await reload(); notify("Category added."); } catch (e: any) { notify(e.message); }
   };
-  
+
   const updateCategory = async () => {
     try {
       if (!catName.trim()) return;
@@ -624,7 +633,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord }: any) {
       notify("Category updated.");
     } catch (e: any) { notify(e.message); }
   };
-  
+
   const deleteCategory = async () => {
     try {
       await api("/api/catalog/categories", { method: "DELETE", body: JSON.stringify({ id: editCat.id }) });
@@ -635,7 +644,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord }: any) {
     } catch (e: any) { notify(e.message); }
   };
 
-  const edit = (row: any) => { setF({ id: row.id, expense_name: row.expense_name, category_id: row.category_id || "", amount: row.amount, expense_date: row.expense_date?.slice(0,10) || "", notes: row.notes || "" }); setTab("create"); };
+  const edit = (row: any) => { setF({ id: row.id, expense_name: row.expense_name, category_id: row.category_id || "", amount: row.amount, expense_date: row.expense_date?.slice(0, 10) || "", notes: row.notes || "", assigned_to: row.assigned_to || "" }); setTab("create"); };
   const remove = async (row: any) => { await api("/api/expenses", { method: "DELETE", body: JSON.stringify({ id: row.id }) }); setReloadTrigger(x => x + 1); notify("Expense deleted."); };
 
   return (
@@ -643,41 +652,43 @@ function Expenses({ categories, reload, notify, setExpenseRecord }: any) {
       {editCat && (
         <Modal title="Edit Category" onClose={() => { setEditCat(null); setConfirmCatDelete(false); }}>
           {!confirmCatDelete ? (
-             <div className="space-y-4">
-                <input className="w-full border rounded p-2" value={catName} onChange={e => setCatName(e.target.value)} placeholder="Category Name" />
-                <div className="flex justify-between pt-4">
-                  <button type="button" className="text-rose-600 text-sm font-medium hover:underline" onClick={() => setConfirmCatDelete(true)}>Delete Category</button>
-                  <div className="flex gap-3">
-                    <button type="button" className="button-secondary" onClick={() => setEditCat(null)}>Cancel</button>
-                    <button type="button" className="button" onClick={updateCategory}>Save</button>
-                  </div>
+            <div className="space-y-4">
+              <input className="w-full border rounded p-2" value={catName} onChange={e => setCatName(e.target.value)} placeholder="Category Name" />
+              <div className="flex justify-between pt-4">
+                <button type="button" className="text-rose-600 text-sm font-medium hover:underline" onClick={() => setConfirmCatDelete(true)}>Delete Category</button>
+                <div className="flex gap-3">
+                  <button type="button" className="button-secondary" onClick={() => setEditCat(null)}>Cancel</button>
+                  <button type="button" className="button" onClick={updateCategory}>Save</button>
                 </div>
-             </div>
+              </div>
+            </div>
           ) : (
-             <div className="space-y-4">
-               <p className="text-slate-600">Are you sure you want to delete this category? Expenses using it will become uncategorised.</p>
-               <div className="flex justify-end gap-3 pt-4">
-                 <button type="button" className="button-secondary" onClick={() => setConfirmCatDelete(false)}>Cancel</button>
-                 <button type="button" className="button bg-rose-600 hover:bg-rose-700" onClick={deleteCategory}>Delete</button>
-               </div>
-             </div>
+            <div className="space-y-4">
+              <p className="text-slate-600">Are you sure you want to delete this category? Expenses using it will become uncategorised.</p>
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" className="button-secondary" onClick={() => setConfirmCatDelete(false)}>Cancel</button>
+                <button type="button" className="button bg-rose-600 hover:bg-rose-700" onClick={deleteCategory}>Delete</button>
+              </div>
+            </div>
           )}
         </Modal>
       )}
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Expenses</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab==="create"?"bg-white text-brand-700 shadow":"text-slate-600 hover:text-slate-900"}`} onClick={()=>{setTab("create"); setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "" });}}>Add Expense</button>
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab==="manage"?"bg-white text-brand-700 shadow":"text-slate-600 hover:text-slate-900"}`} onClick={()=>setTab("manage")}>Manage</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", assigned_to: "" }); }}>Add Expense</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
       {tab === "create" ? (
         <div className="space-y-4">
+          <datalist id="staff-list-exp">{staff.map((s: string) => <option key={s} value={s} />)}</datalist>
           <form onSubmit={submit} className="card grid gap-3 sm:grid-cols-2">
             <Field label="Expense name" value={f.expense_name} onChange={(v: any) => setF({ ...f, expense_name: v })} />
             <label><span className="label">Category</span><select value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value })}><option value="">Uncategorised</option>{categories.map((x: any) => <option value={x.id} key={x.id}>{x.name}</option>)}</select></label>
             <Field label="Amount (₹)" type="number" value={f.amount} onChange={(v: any) => setF({ ...f, amount: v })} />
             <Field label="Date" type="date" value={f.expense_date} onChange={(v: any) => setF({ ...f, expense_date: v })} />
+            <Field label="Assigned To" value={f.assigned_to} onChange={(v: any) => setF({ ...f, assigned_to: v })} list="staff-list-exp" />
             <button className="button sm:col-span-2">{f.id ? "Update expense" : "Save expense"}</button>
           </form>
           <div className="card">
@@ -687,7 +698,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord }: any) {
           </div>
         </div>
       ) : (
-        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{key:"expense_date",label:"Date",render:(r:any)=>r.expense_date?.slice(0,10)},{key:"expense_name",label:"Name"},{key:"category_name",label:"Category"},{key:"amount",label:"Amount",render:(r:any)=>rupees(r.amount)}]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setExpenseRecord(r)} />
+        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{ key: "expense_date", label: "Date", render: (r: any) => r.expense_date?.slice(0, 10) }, { key: "expense_name", label: "Name" }, { key: "category_name", label: "Category" }, { key: "assigned_to", label: "Assigned To" }, { key: "amount", label: "Amount", render: (r: any) => rupees(r.amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setExpenseRecord(r)} />
       )}
     </div>
   );
@@ -697,7 +708,7 @@ function Reports() {
   useEffect(() => {
     api("/api/reports")
       .then(setR)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
   const rows = [
     ["Cash inflow", r?.summary?.income, "Money collected from invoices"],
@@ -707,7 +718,10 @@ function Reports() {
   ];
   return (
     <div>
-      <h2 className="mb-4 text-2xl font-bold">Reports</h2>
+      <div className="flex justify-between items-center mb-4 border-b pb-4">
+        <h2 className="text-2xl font-bold">Reports</h2>
+        <a href="/api/reports/export" download className="button text-sm px-4 py-1.5">Export Excel</a>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         {rows.map(([t, v, d]) => (
           <div className="card" key={String(t)}>
@@ -802,16 +816,16 @@ function Logs() {
   return (
     <div className="card">
       <h2 className="text-2xl font-bold mb-4">Audit Logs</h2>
-      <DataTable 
-        endpoint="/api/logs" 
+      <DataTable
+        endpoint="/api/logs"
         filterDate={false}
         columns={[
-          {key:"created_at",label:"Timestamp",render:(r:any)=>new Date(r.created_at).toLocaleString()},
-          {key:"user_email",label:"User"},
-          {key:"action",label:"Action"},
-          {key:"table_name",label:"Entity"},
-          {key:"details",label:"Details",render:(r:any)=><pre className="text-xs overflow-auto max-w-[200px]">{JSON.stringify(r.details)}</pre>}
-        ]} 
+          { key: "created_at", label: "Timestamp", render: (r: any) => new Date(r.created_at).toLocaleString() },
+          { key: "user_email", label: "User" },
+          { key: "action", label: "Action" },
+          { key: "table_name", label: "Entity" },
+          { key: "details", label: "Details", render: (r: any) => <pre className="text-xs overflow-auto max-w-[200px]">{JSON.stringify(r.details)}</pre> }
+        ]}
       />
     </div>
   );
@@ -867,7 +881,7 @@ function ReceiptView({ data, config, close }: any) {
             <p className="text-sm text-slate-500">{config.contact_number}</p>
             <hr className="my-4" />
             <p className="font-semibold">
-              {data.type === "advance" ? "ADVANCE RECEIPT" : "TAX INVOICE"}
+              {data.type === "advance" ? "ADVANCE RECEIPT" : "INVOICE"}
             </p>
             <p className="text-sm">
               #{data.receipt_number || data.invoice_number}
@@ -919,7 +933,7 @@ function ReceiptView({ data, config, close }: any) {
             )}
             <p className="flex justify-between text-lg font-bold">
               <span>{data.type === "advance" ? "Advance paid" : "Total"}</span>
-              <span>{rupees(data.advance_amount || data.grand_total)}</span>
+              <span>{rupees(data.type === "advance" ? data.advance_amount : data.grand_total)}</span>
             </p>
             {data.type === "invoice" && Number(data.advance_amount) > 0 && (
               <>
@@ -973,12 +987,13 @@ function ReceiptView({ data, config, close }: any) {
     </div>
   );
 }
-function Field({ label, type = "text", value, onChange }: any) {
+function Field({ label, type = "text", value, onChange, list }: any) {
   return (
     <label>
       <span className="label">{label}</span>
       <input
         type={type}
+        list={list}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
@@ -1046,7 +1061,7 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
   return (
     <div className="space-y-4">
       {confirmDelete && (
-        <ConfirmModal 
+        <ConfirmModal
           title="Confirm Deletion"
           message="Are you sure you want to delete this record? This action cannot be undone."
           onCancel={() => setConfirmDelete(null)}
@@ -1086,7 +1101,7 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
               </tbody>
             </table>
           </div>
-          
+
           <div className="grid md:hidden gap-3">
             {data.length === 0 && <p className="text-center text-slate-500 p-4">No records found</p>}
             {data.map((row, i) => (
