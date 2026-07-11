@@ -729,6 +729,7 @@ function Reports({ config }: any) {
   const [details, setDetails] = useState<any[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [viewRecord, setViewRecord] = useState<any>(null);
+  const [paymentModeFilter, setPaymentModeFilter] = useState("All");
 
   useEffect(() => { api("/api/reports").then(setR).catch(() => {}); }, []);
 
@@ -737,16 +738,23 @@ function Reports({ config }: any) {
     { key: "outflow", label: "Cash outflow", value: r?.summary?.expenses, color: "text-rose-600", desc: "All recorded expenses" },
     { key: "profit", label: "Profit / loss", value: r?.summary?.profit, color: "text-brand-700", desc: "Inflow less expenses" },
     { key: "sales", label: "Account aggregation", value: r?.summary?.sales, color: "text-brand-700", desc: "Total invoice item sales" },
+    { key: "payments-in", label: "Payments IN", value: undefined, color: "text-emerald-600", desc: "View all inbound transactions" },
+    { key: "payments-out", label: "Payments OUT", value: undefined, color: "text-rose-600", desc: "View all outbound transactions" },
+    { key: "download", label: "Download", value: undefined, color: "text-brand-700", desc: "Advanced Excel exports" },
   ];
 
   const openCard = async (key: string) => {
     setActiveCard(key);
-    setLoadingDetails(true);
-    try {
-      const res = await api(`/api/reports/details?type=${key}`);
-      setDetails(res.items || res);
-    } catch { setDetails([]); }
-    setLoadingDetails(false);
+    if (["inflow", "outflow", "profit", "sales"].includes(key)) {
+      setLoadingDetails(true);
+      try {
+        const res = await api(`/api/reports/details?type=${key}`);
+        setDetails(res.items || res);
+      } catch { setDetails([]); }
+      setLoadingDetails(false);
+    } else if (key === "payments-in" || key === "payments-out") {
+      setPaymentModeFilter("All");
+    }
   };
 
   return (
@@ -755,18 +763,60 @@ function Reports({ config }: any) {
         <h2 className="text-2xl font-bold">Reports</h2>
         <div className="flex gap-2">
           {activeCard && <button type="button" className="button-secondary text-sm px-4 py-1.5" onClick={() => setActiveCard(null)}>Back</button>}
-          <a href="/api/reports/export" download className="button text-sm px-4 py-1.5">Export Excel</a>
+          {(!activeCard || ["inflow", "outflow", "profit", "sales"].includes(activeCard)) && (
+            <a href="/api/reports/export" download className="button text-sm px-4 py-1.5">Export Excel</a>
+          )}
+          {(activeCard === "payments-in" || activeCard === "payments-out") && (
+            <a href={`/api/reports/downloads?type=${activeCard}`} download className="button text-sm px-4 py-1.5">Export Excel</a>
+          )}
         </div>
       </div>
       {!activeCard ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
           {cards.map(c => (
             <button type="button" key={c.key} className="card text-left hover:shadow-md transition-shadow" onClick={() => openCard(c.key)}>
               <p className="font-semibold">{c.label}</p>
-              <p className={`mt-2 text-2xl font-bold ${c.color}`}>{c.value === undefined ? "—" : rupees(c.value)}</p>
-              <p className="text-sm text-slate-500">{c.desc}</p>
+              {c.value !== undefined && <p className={`mt-2 text-2xl font-bold ${c.color}`}>{rupees(c.value)}</p>}
+              <p className="mt-2 text-sm text-slate-500">{c.desc}</p>
             </button>
           ))}
+        </div>
+      ) : activeCard === "download" ? (
+        <div className="space-y-4 max-w-lg">
+          <h3 className="font-semibold text-lg">Advanced Downloads</h3>
+          <div className="card space-y-3">
+            <a href="/api/reports/downloads?type=payments-all" download className="block w-full text-center button-secondary">Download Payments All (Inflow & Outflow)</a>
+            <a href="/api/reports/downloads?type=all-invoices" download className="block w-full text-center button-secondary">Download All Bills & Invoices</a>
+            <a href="/api/reports/downloads?type=all-expenses" download className="block w-full text-center button-secondary">Download All Expenses</a>
+          </div>
+        </div>
+      ) : activeCard === "payments-in" || activeCard === "payments-out" ? (
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg">{cards.find(c => c.key === activeCard)?.label}</h3>
+          <div className="flex gap-2 border-b pb-2 overflow-x-auto">
+            {["All", "UPI", "Cash", "Card"].map(m => (
+              <button 
+                key={m} 
+                onClick={() => setPaymentModeFilter(m)} 
+                className={`px-4 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors ${paymentModeFilter === m ? "bg-brand-600 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700"}`}
+              >
+                {m === "All" ? "All transactions" : m}
+              </button>
+            ))}
+          </div>
+          <DataTable 
+            endpoint={`/api/reports/${activeCard}?mode=${paymentModeFilter}`}
+            onRowClick={(r: any) => setViewRecord(r.raw)}
+            columns={[
+              { key: "date", label: "Date", render: (r: any) => r.date?.slice(0, 10) },
+              { key: "bill_number", label: "Bill / Expense" },
+              { key: "receipt_number", label: "Receipt #" },
+              { key: "customer_name", label: activeCard === "payments-in" ? "Customer" : "Category" },
+              { key: "assigned_to", label: "Assigned To" },
+              { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode },
+              { key: "amount", label: "Amount", render: (r: any) => rupees(r.amount) }
+            ]}
+          />
         </div>
       ) : (
         <div className="space-y-3">
@@ -1188,6 +1238,8 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const loadData = async () => {
     setLoading(true);
@@ -1196,8 +1248,11 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
       if (search) q.append("search", search);
       if (startDate) q.append("startDate", startDate);
       if (endDate) q.append("endDate", endDate);
-      const res = await api(endpoint + "?" + q.toString());
+      q.append("page", page.toString());
+      const separator = endpoint.includes("?") ? "&" : "?";
+      const res = await api(endpoint + separator + q.toString());
       setData(res.items || res);
+      if (res.totalPages) setTotalPages(res.totalPages);
     } catch (e) {
       console.error(e);
     }
@@ -1207,7 +1262,12 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
   useEffect(() => {
     const t = setTimeout(loadData, 300);
     return () => clearTimeout(t);
-  }, [search, startDate, endDate, endpoint, reloadTrigger]);
+  }, [search, startDate, endDate, endpoint, reloadTrigger, page]);
+
+  // Reset page when search or filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, startDate, endDate, endpoint]);
 
   return (
     <div className="space-y-4">
@@ -1274,6 +1334,24 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
               </div>
             ))}
           </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <button 
+                type="button"
+                className="button-secondary text-sm disabled:opacity-50" 
+                disabled={page === 1} 
+                onClick={() => setPage(p => p - 1)}
+              >Previous</button>
+              <span className="text-sm font-medium text-slate-600">Page {page} of {totalPages}</span>
+              <button 
+                type="button"
+                className="button-secondary text-sm disabled:opacity-50" 
+                disabled={page === totalPages} 
+                onClick={() => setPage(p => p + 1)}
+              >Next</button>
+            </div>
+          )}
         </>
       )}
     </div>
