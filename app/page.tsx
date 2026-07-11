@@ -1071,10 +1071,12 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
       <div className="flex flex-wrap gap-2">
         <input placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} className="flex-1 rounded-md border border-slate-300 px-3 py-1.5" />
         {filterDate && (
-          <>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <span>From</span>
             <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="rounded-md border border-slate-300 px-3 py-1.5" />
+            <span>To</span>
             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="rounded-md border border-slate-300 px-3 py-1.5" />
-          </>
+          </div>
         )}
       </div>
       {loading ? <p>Loading...</p> : (
