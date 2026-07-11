@@ -169,6 +169,106 @@ export async function POST(req: Request) {
   return NextResponse.json(result, { status: 201 });
 }
 
+export async function PATCH(req: Request) {
+  try {
+    const b = await req.json();
+    if (!b.id) throw new Error("Invoice ID is required");
+    const user = await getCurrentUser() || "system";
+    
+    if (!b.customer_name?.trim())
+      throw new Error("Customer name is required");
+    const cleanItems = (b.items || []).filter(
+      (i: any) =>
+        i.item_name &&
+        Number.isFinite(Number(i.quantity)) &&
+        Number.isFinite(Number(i.unit_price)),
+    );
+    if (cleanItems.length === 0) throw new Error("At least one valid item is required");
+    const subtotal = roundMoney(
+      cleanItems.reduce((s: number, i: any) => s + i.quantity * i.unit_price, 0),
+    );
+    const discount = roundMoney(Number(b.discount) || 0),
+      taxRate = roundMoney(Number(b.tax_rate) || 0),
+      tax = roundMoney((subtotal - discount) * (taxRate / 100)),
+      total = roundMoney(subtotal - discount + tax);
+
+    const result = await transaction(async (c) => {
+      const { rows: oldInvRows } = await c.query("SELECT * FROM zalish_invoices WHERE id=$1 AND deleted_at IS NULL", [b.id]);
+      if (!oldInvRows[0]) throw new Error("Invoice not found");
+      const oldInvoice = oldInvRows[0];
+      
+      const { rows: oldItemsRows } = await c.query("SELECT * FROM zalish_invoice_items WHERE invoice_id=$1", [b.id]);
+      const oldRecord = { ...oldInvoice, items: oldItemsRows };
+      
+      let advance: any = null;
+      if (b.advance_id && b.advance_id !== oldInvoice.advance_id) {
+        const a = await c.query("SELECT * FROM zalish_advances WHERE id=$1 AND deleted_at IS NULL AND settled_invoice_id IS NULL FOR UPDATE", [b.advance_id]);
+        advance = a.rows[0];
+        if (!advance) throw new Error("Selected advance receipt is no longer available");
+      } else if (b.advance_id === oldInvoice.advance_id && oldInvoice.advance_id) {
+         const a = await c.query("SELECT * FROM zalish_advances WHERE id=$1 FOR UPDATE", [oldInvoice.advance_id]);
+         advance = a.rows[0];
+      }
+      
+      const date = b.date || oldInvoice.date || new Date().toISOString().slice(0, 10);
+      const advanceAmount = Math.min(Number(advance?.advance_amount || 0), total);
+      const balance = roundMoney(total - advanceAmount);
+      const paymentMode = b.payment_mode || oldInvoice.payment_mode || "UPI";
+      const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
+
+      const inv = await c.query(
+        "UPDATE zalish_invoices SET customer_name=$1, customer_phone=$2, customer_place=$3, subtotal=$4, discount=$5, tax_rate=$6, tax_amount=$7, grand_total=$8, advance_id=$9, advance_amount=$10, balance_due=$11, date=$12, updated_by=$13, assigned_to=$14, payment_mode=$15, payment_mode_other=$16, is_edited=TRUE WHERE id=$17 RETURNING *",
+        [
+          b.customer_name,
+          b.customer_phone || null,
+          b.customer_place || null,
+          subtotal,
+          discount,
+          taxRate,
+          tax,
+          total,
+          advance?.id || null,
+          advanceAmount,
+          balance,
+          date,
+          user,
+          b.assigned_to || null,
+          paymentMode,
+          paymentModeOther,
+          b.id
+        ],
+      );
+
+      if (oldInvoice.advance_id && oldInvoice.advance_id !== advance?.id) {
+        await c.query("UPDATE zalish_advances SET settled_invoice_id=NULL WHERE id=$1", [oldInvoice.advance_id]);
+      }
+      if (advance && advance.id !== oldInvoice.advance_id) {
+        await c.query("UPDATE zalish_advances SET settled_invoice_id=$1 WHERE id=$2", [b.id, advance.id]);
+      }
+
+      await c.query("DELETE FROM zalish_invoice_items WHERE invoice_id=$1", [b.id]);
+      
+      for (const i of cleanItems) {
+        const line = roundMoney(i.quantity * i.unit_price);
+        await c.query(
+          "INSERT INTO zalish_invoice_items(invoice_id,item_id,item_name,quantity,unit_price,line_total) VALUES($1,$2,$3,$4,$5,$6)",
+          [b.id, i.item_id || null, i.item_name, i.quantity, i.unit_price, line]
+        );
+      }
+      
+      const finalInv = { ...inv.rows[0], items: cleanItems };
+      await c.query(
+        "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+        ["zalish_invoices", String(finalInv.id), "UPDATE", user, JSON.stringify({ old: oldRecord, new: finalInv })]
+      );
+      return finalInv;
+    });
+    return NextResponse.json(result);
+  } catch (e) {
+    return error(e);
+  }
+}
+
 export async function DELETE(req: Request) {
   try {
     const { id } = await req.json();

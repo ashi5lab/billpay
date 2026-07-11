@@ -15,9 +15,22 @@ export async function GET(req: Request) {
     const params: any[] = [limit, (page - 1) * limit];
     let paramCount = 3;
 
+    const recordId = p.get("record_id");
+    const tableName = p.get("table_name");
+
     if (search) {
       whereClause += ` AND (table_name ILIKE $${paramCount} OR action ILIKE $${paramCount} OR user_email ILIKE $${paramCount})`;
       params.push(`%${search}%`);
+      paramCount++;
+    }
+    if (recordId) {
+      whereClause += ` AND record_id = $${paramCount}`;
+      params.push(recordId);
+      paramCount++;
+    }
+    if (tableName) {
+      whereClause += ` AND table_name = $${paramCount}`;
+      params.push(tableName);
       paramCount++;
     }
 

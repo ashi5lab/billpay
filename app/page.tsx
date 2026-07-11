@@ -408,7 +408,9 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
     }
     setSaving(true);
     try {
-      const result = await api("/api/invoices", { method: "POST", body: JSON.stringify({ customer_name: customer.name, customer_phone: customer.phone, customer_place: customer.place, date: invoiceDate, assigned_to: assignedTo, items: lines, discount: discountAmount, tax_rate: amount(tax), advance_id: selected?.id, payment_mode: paymentMode, payment_mode_other: paymentMode === "Other" ? paymentModeOther : null }) });
+      const method = fId ? "PATCH" : "POST";
+      const payload = { id: fId, customer_name: customer.name, customer_phone: customer.phone, customer_place: customer.place, date: invoiceDate, assigned_to: assignedTo, items: lines, discount: discountAmount, tax_rate: amount(tax), advance_id: selected?.id, payment_mode: paymentMode, payment_mode_other: paymentMode === "Other" ? paymentModeOther : null };
+      const result = await api("/api/invoices", { method, body: JSON.stringify(payload) });
       setReceipt({ ...result, type: "invoice" });
       notify("Invoice created/updated successfully.");
       setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
@@ -442,6 +444,31 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
     setReceipt({ ...row, type: "invoice" });
   };
 
+  const edit = (row: any) => {
+    setFId(row.id);
+    setCustomer({ name: row.customer_name, phone: row.customer_phone || "", place: row.customer_place || "" });
+    setInvoiceDate(row.date?.slice(0, 10) || new Date().toISOString().slice(0, 10));
+    setAssignedTo(row.assigned_to || "");
+    setDiscount(row.discount || "");
+    setTax(row.tax_rate || "");
+    setPaymentMode(row.payment_mode || "UPI");
+    setPaymentModeOther(row.payment_mode_other || "");
+    if (row.items && row.items.length > 0) {
+      setLines(row.items.map((i: any) => ({ item_id: i.item_id || "", item_name: i.item_name, quantity: Number(i.quantity), unit_price: Number(i.unit_price) })));
+    } else {
+      setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
+    }
+    if (row.advance_id) {
+      setSelected({ id: row.advance_id, receipt_number: row.advance_receipt_number, advance_amount: row.advance_amount });
+    } else {
+      setSelected(null);
+      setQuery("");
+    }
+    setTab("create");
+  };
+
+  const [showHistory, setShowHistory] = useState(false);
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4 border-b pb-4">
@@ -454,15 +481,12 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
             setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
             setDiscount("");
             setTax("");
-            setAssignedTo("");
-            setSelected(null);
-            setQuery("");
-            setPaymentMode("UPI");
-            setPaymentModeOther("");
-          }}>{fId ? "Edit Invoice" : "Create Invoice"}</button>
+            setTab("create"); setFId(""); setCustomer({ name: "", phone: "", place: "" }); setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]); setSelected(null); setQuery(""); setDiscount(""); setTax("");
+          }}>Create Bill</button>
           <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
+      {showHistory && <EditHistoryModal recordId={fId} tableName="zalish_invoices" onClose={() => setShowHistory(false)} />}
       {tab === "create" ? (
         <form onSubmit={submit} className="space-y-4">
           <div className="card grid gap-3 sm:grid-cols-6">
@@ -518,9 +542,10 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
             </div>
           </div>
           <button disabled={saving} className="button w-full">{saving ? <><Spinner /> Saving…</> : (fId ? "Update invoice" : "Create invoice")}</button>
+          {fId && <button type="button" onClick={() => setShowHistory(true)} className="button-secondary w-full">View Edit History</button>}
         </form>
       ) : (
-        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_receipt_number", label: "Advance Receipt", render: (r: any) => r.advance_receipt_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} />
+        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_receipt_number", label: "Advance Receipt", render: (r: any) => r.advance_receipt_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} onEdit={edit} />
       )}
     </div>
   );
@@ -530,6 +555,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
   const [f, setF] = useState<any>({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" });
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -561,6 +587,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
           <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
+      {showHistory && <EditHistoryModal recordId={f.id} tableName="zalish_advances" onClose={() => setShowHistory(false)} />}
       {tab === "create" ? (
         <form onSubmit={submit} className="space-y-4">
           <div className="card grid gap-3 sm:grid-cols-2">
@@ -574,6 +601,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
           </div>
           <Field label="Notes" value={f.notes} onChange={(v: any) => setF({ ...f, notes: v })} />
           <button disabled={saving} className="button w-full">{saving ? <><Spinner /> Saving…</> : (f.id ? "Update advance" : "Create advance receipt")}</button>
+          {f.id && <button type="button" onClick={() => setShowHistory(true)} className="button-secondary w-full">View Edit History</button>}
         </form>
       ) : (
         <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{ key: "receipt_number", label: "Receipt #" }, { key: "issued_at", label: "Date", render: (r: any) => r.issued_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "attached_invoice_number", label: "Attached Bill", render: (r: any) => r.attached_invoice_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "advance_amount", label: "Amount", render: (r: any) => rupees(r.advance_amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} />
@@ -635,6 +663,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
   const [cat, setCat] = useState("");
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const [editCat, setEditCat] = useState<any>(null);
   const [catName, setCatName] = useState("");
@@ -718,6 +747,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
       </div>
       {tab === "create" ? (
         <div className="space-y-4">
+          {showHistory && <EditHistoryModal recordId={f.id} tableName="zalish_expenses" onClose={() => setShowHistory(false)} />}
           <form onSubmit={submit} className="card grid gap-3 sm:grid-cols-2">
             <Field label="Expense name" value={f.expense_name} onChange={(v: any) => setF({ ...f, expense_name: v })} />
             <label><span className="label">Category</span><select value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value })}><option value="">Uncategorised</option>{categories.map((x: any) => <option value={x.id} key={x.id}>{x.name}</option>)}</select></label>
@@ -726,6 +756,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
             <AssignedToField value={f.assigned_to} staff={staff} onChange={(v: any) => setF({ ...f, assigned_to: v })} />
             <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v:any)=>setF({...f, payment_mode: v})} onOtherChange={(v:any)=>setF({...f, payment_mode_other: v})} />
             <button disabled={saving} className="button sm:col-span-2">{saving ? <><Spinner /> Saving…</> : (f.id ? "Update expense" : "Save expense")}</button>
+            {f.id && <button type="button" onClick={() => setShowHistory(true)} className="button-secondary sm:col-span-2">View Edit History</button>}
           </form>
           <div className="card">
             <h3 className="font-semibold">Categories</h3>
@@ -925,7 +956,10 @@ function Reports({ config, notify }: any) {
                           {currentDetails.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-slate-500">No records found</td></tr>}
                           {currentDetails.map((row: any, i: number) => (
                             <tr key={row.id || i} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewRecord(row.raw)}>
-                              <td className="p-3">{row.date?.slice(0, 10)}</td>
+                              <td className="p-3">
+                                {row.date?.slice(0, 10)}
+                                {row.raw?.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
+                              </td>
                               <td className="p-3">{row.bill_number || "—"}</td>
                               <td className="p-3">{row.receipt_number || "—"}</td>
                               <td className="p-3">{row.advance_receipt_number || "—"}</td>
@@ -940,7 +974,13 @@ function Reports({ config, notify }: any) {
                       {currentDetails.length === 0 && <p className="text-center text-slate-500 p-4">No records found</p>}
                       {currentDetails.map((row: any, i: number) => (
                         <div key={row.id || i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm cursor-pointer" onClick={() => setViewRecord(row.raw)}>
-                          <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Date:</span><span>{row.date?.slice(0, 10)}</span></div>
+                          <div className="flex justify-between text-sm">
+                            <span className="font-semibold text-slate-500">Date:</span>
+                            <span>
+                              {row.date?.slice(0, 10)}
+                              {row.raw?.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
+                            </span>
+                          </div>
                           {row.bill_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Bill #:</span><span>{row.bill_number}</span></div>}
                           {row.receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Receipt #:</span><span>{row.receipt_number}</span></div>}
                           {row.advance_receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Advance Receipt #:</span><span>{row.advance_receipt_number}</span></div>}
@@ -1366,6 +1406,54 @@ function Modal({ title, children, onClose }: any) {
   );
 }
 
+function EditHistoryModal({ recordId, tableName, onClose }: any) {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api(`/api/logs?record_id=${recordId}&table_name=${tableName}`).then((res) => {
+      setLogs(res.items || res);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [recordId, tableName]);
+
+  return (
+    <Modal title="Edit History" onClose={onClose}>
+      {loading ? <div className="p-4 text-center"><Spinner /></div> : logs.length === 0 ? <p className="text-slate-500 text-center p-4">No edit history found.</p> : (
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+          {logs.map((log) => (
+            <div key={log.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <p className="font-semibold">{log.user_email}</p>
+                  <p className="text-xs text-slate-500">{new Date(log.created_at).toLocaleString()}</p>
+                </div>
+                <span className="px-2 py-0.5 text-xs font-bold bg-slate-200 text-slate-700 rounded uppercase">{log.action}</span>
+              </div>
+              {log.details?.old && log.details?.new ? (
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="p-2 bg-rose-50 rounded border border-rose-100 overflow-x-auto text-xs">
+                    <p className="font-bold text-rose-800 mb-1">Old</p>
+                    <pre>{JSON.stringify(log.details.old, null, 2)}</pre>
+                  </div>
+                  <div className="p-2 bg-emerald-50 rounded border border-emerald-100 overflow-x-auto text-xs">
+                    <p className="font-bold text-emerald-800 mb-1">New</p>
+                    <pre>{JSON.stringify(log.details.new, null, 2)}</pre>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2 bg-white rounded border border-slate-100 overflow-x-auto text-xs">
+                  <pre>{JSON.stringify(log.details, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 function ConfirmModal({ title, message, onConfirm, onCancel }: any) {
   return (
     <Modal title={title} onClose={onCancel}>
@@ -1486,7 +1574,12 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
                 {data.length === 0 && <tr><td colSpan={columns.length + 1} className="p-6 text-center text-slate-500">No records found</td></tr>}
                 {data.map((row, i) => (
                   <tr key={row.id || i} className={`hover:bg-slate-50 ${onRowClick ? 'cursor-pointer' : ''}`} onClick={(e) => { if ((e.target as any).closest('button') || (e.target as any).tagName === 'A') return; onRowClick?.(row); }}>
-                    {columns.map((c: any) => <td key={c.key} className="p-3">{c.render ? c.render(row) : row[c.key]}</td>)}
+                    {columns.map((c: any, colIdx: number) => (
+                      <td key={c.key} className="p-3">
+                        {c.render ? c.render(row) : row[c.key]}
+                        {colIdx === 0 && row.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
+                      </td>
+                    ))}
                     <td className="p-3 flex gap-3">
                       {onEdit && <button type="button" onClick={() => onEdit(row)} className="text-brand-600 font-medium hover:underline">Edit</button>}
                       {onDelete && <button type="button" onClick={() => setConfirmDelete(row)} className="text-rose-600 font-medium hover:underline">Delete</button>}
@@ -1501,10 +1594,13 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
             {data.length === 0 && <p className="text-center text-slate-500 p-4">No records found</p>}
             {data.map((row, i) => (
               <div key={row.id || i} className={`rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm ${onRowClick ? 'cursor-pointer hover:bg-slate-50' : ''}`} onClick={(e) => { if ((e.target as any).closest('button') || (e.target as any).tagName === 'A') return; onRowClick?.(row); }}>
-                {columns.map((c: any) => (
+                {columns.map((c: any, colIdx: number) => (
                   <div key={c.key} className="flex justify-between items-start text-sm">
                     <span className="font-semibold text-slate-500">{c.label}:</span>
-                    <span className="text-right ml-2 font-medium text-slate-900">{c.render ? c.render(row) : row[c.key]}</span>
+                    <span className="text-right ml-2 font-medium text-slate-900">
+                      {c.render ? c.render(row) : row[c.key]}
+                      {colIdx === 0 && row.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
+                    </span>
                   </div>
                 ))}
                 {(onEdit || onDelete) && (

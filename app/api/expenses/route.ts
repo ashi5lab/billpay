@@ -108,8 +108,10 @@ export async function PATCH(req: Request) {
     const paymentMode = b.payment_mode || "UPI";
     const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const row = await transaction(async (c) => {
+      const { rows: oldRows } = await c.query("SELECT * FROM zalish_expenses WHERE id=$1", [b.id]);
+      if (!oldRows[0]) throw new Error("Expense not found");
       const { rows } = await c.query(
-        "UPDATE zalish_expenses SET expense_name=$1, category_id=$2, amount=$3, expense_date=$4, notes=$5, date=$6, updated_by=$7, assigned_to=$8, payment_mode=$9, payment_mode_other=$10 WHERE id=$11 AND deleted_at IS NULL RETURNING *",
+        "UPDATE zalish_expenses SET expense_name=$1, category_id=$2, amount=$3, expense_date=$4, notes=$5, date=$6, updated_by=$7, assigned_to=$8, payment_mode=$9, payment_mode_other=$10, is_edited=TRUE WHERE id=$11 AND deleted_at IS NULL RETURNING *",
         [
           b.expense_name.trim(),
           b.category_id || null,
@@ -127,7 +129,7 @@ export async function PATCH(req: Request) {
       if (!rows[0]) throw new Error("Expense not found");
       await c.query(
         "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
-        ["zalish_expenses", String(rows[0].id), "UPDATE", user, JSON.stringify(rows[0])]
+        ["zalish_expenses", String(rows[0].id), "UPDATE", user, JSON.stringify({ old: oldRows[0], new: rows[0] })]
       );
       return rows[0];
     });
