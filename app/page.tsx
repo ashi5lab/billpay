@@ -329,18 +329,27 @@ function Dashboard({ notify }: any) {
     <>
       <h2 className="mb-4 text-2xl font-bold">Today at a glance</h2>
       <div className="grid gap-3 sm:grid-cols-3">
-        {[
-          ["Cash inflow", s?.income, "text-emerald-600"],
-          ["Cash outflow", s?.expenses, "text-rose-600"],
-          ["Profit / Loss", s?.profit, "text-brand-700"],
-        ].map(([a, b, c]) => (
-          <div className="card" key={String(a)}>
-            <p className="text-sm text-slate-500">{a}</p>
-            <p className={`mt-2 text-xl font-bold ${c}`}>
-              {b === undefined ? "—" : rupees(b as number)}
-            </p>
-          </div>
-        ))}
+        {!report ? (
+          [...Array(3)].map((_, i) => (
+            <div className="card" key={i}>
+              <div className="h-4 bg-slate-200 rounded animate-pulse w-24"></div>
+              <div className="h-8 bg-slate-100 rounded animate-pulse w-32 mt-3"></div>
+            </div>
+          ))
+        ) : (
+          [
+            ["Cash inflow", s?.income, "text-emerald-600"],
+            ["Cash outflow", s?.expenses, "text-rose-600"],
+            ["Profit / Loss", s?.profit, "text-brand-700"],
+          ].map(([a, b, c]) => (
+            <div className="card" key={String(a)}>
+              <p className="text-sm text-slate-500">{a}</p>
+              <p className={`mt-2 text-xl font-bold ${c}`}>
+                {b === undefined ? "—" : rupees(b as number)}
+              </p>
+            </div>
+          ))
+        )}
       </div>
       <div className="card mt-4">
         <h3 className="font-semibold">Quick start</h3>
@@ -452,13 +461,12 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
       </div>
       {tab === "create" ? (
         <form onSubmit={submit} className="space-y-4">
-          <datalist id="staff-list">{staff.map((s: string) => <option key={s} value={s} />)}</datalist>
           <div className="card grid gap-3 sm:grid-cols-6">
             <Field label="Customer name *" value={customer.name} onChange={(v: any) => setCustomer({ ...customer, name: v })} />
             <Field label="Phone (optional)" type="tel" value={customer.phone} onChange={(v: any) => setCustomer({ ...customer, phone: v })} />
             <Field label="Place (optional)" value={customer.place} onChange={(v: any) => setCustomer({ ...customer, place: v })} />
             <Field label="Date" type="date" value={invoiceDate} onChange={(v: any) => setInvoiceDate(v)} />
-            <Field label="Assigned To" value={assignedTo} onChange={setAssignedTo} list="staff-list" />
+            <AssignedToField value={assignedTo} staff={staff} onChange={setAssignedTo} />
             <PaymentModeField value={paymentMode} otherValue={paymentModeOther} onChange={setPaymentMode} onOtherChange={setPaymentModeOther} />
           </div>
           <div className="card space-y-3">
@@ -549,14 +557,13 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
       </div>
       {tab === "create" ? (
         <form onSubmit={submit} className="space-y-4">
-          <datalist id="staff-list-adv">{staff.map((s: string) => <option key={s} value={s} />)}</datalist>
           <div className="card grid gap-3 sm:grid-cols-2">
             <Field label="Customer name *" value={f.customer_name} onChange={(v: any) => setF({ ...f, customer_name: v })} />
             <Field label="Advance amount (₹) *" type="number" value={f.advance_amount} onChange={(v: any) => setF({ ...f, advance_amount: v })} />
             <Field label="Phone" value={f.customer_phone} onChange={(v: any) => setF({ ...f, customer_phone: v })} />
             <Field label="Place" value={f.customer_place} onChange={(v: any) => setF({ ...f, customer_place: v })} />
             <Field label="Date" type="date" value={f.date} onChange={(v: any) => setF({ ...f, date: v })} />
-            <Field label="Assigned To" value={f.assigned_to} onChange={(v: any) => setF({ ...f, assigned_to: v })} list="staff-list-adv" />
+            <AssignedToField value={f.assigned_to} staff={staff} onChange={(v: any) => setF({ ...f, assigned_to: v })} />
             <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v:any)=>setF({...f, payment_mode: v})} onOtherChange={(v:any)=>setF({...f, payment_mode_other: v})} />
           </div>
           <Field label="Notes" value={f.notes} onChange={(v: any) => setF({ ...f, notes: v })} />
@@ -701,13 +708,12 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
       </div>
       {tab === "create" ? (
         <div className="space-y-4">
-          <datalist id="staff-list-exp">{staff.map((s: string) => <option key={s} value={s} />)}</datalist>
           <form onSubmit={submit} className="card grid gap-3 sm:grid-cols-2">
             <Field label="Expense name" value={f.expense_name} onChange={(v: any) => setF({ ...f, expense_name: v })} />
             <label><span className="label">Category</span><select value={f.category_id} onChange={(e) => setF({ ...f, category_id: e.target.value })}><option value="">Uncategorised</option>{categories.map((x: any) => <option value={x.id} key={x.id}>{x.name}</option>)}</select></label>
             <Field label="Amount (₹)" type="number" value={f.amount} onChange={(v: any) => setF({ ...f, amount: v })} />
             <Field label="Date" type="date" value={f.expense_date} onChange={(v: any) => setF({ ...f, expense_date: v })} />
-            <Field label="Assigned To" value={f.assigned_to} onChange={(v: any) => setF({ ...f, assigned_to: v })} list="staff-list-exp" />
+            <AssignedToField value={f.assigned_to} staff={staff} onChange={(v: any) => setF({ ...f, assigned_to: v })} />
             <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v:any)=>setF({...f, payment_mode: v})} onOtherChange={(v:any)=>setF({...f, payment_mode_other: v})} />
             <button className="button sm:col-span-2">{f.id ? "Update expense" : "Save expense"}</button>
           </form>
@@ -773,13 +779,23 @@ function Reports({ config }: any) {
       </div>
       {!activeCard ? (
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-          {cards.map(c => (
-            <button type="button" key={c.key} className="card text-left hover:shadow-md transition-shadow" onClick={() => openCard(c.key)}>
-              <p className="font-semibold">{c.label}</p>
-              {c.value !== undefined && <p className={`mt-2 text-2xl font-bold ${c.color}`}>{rupees(c.value)}</p>}
-              <p className="mt-2 text-sm text-slate-500">{c.desc}</p>
-            </button>
-          ))}
+          {!r ? (
+             [...Array(7)].map((_, i) => (
+               <div className="card" key={i}>
+                 <div className="h-5 bg-slate-200 rounded animate-pulse w-32 mb-3"></div>
+                 <div className="h-8 bg-slate-100 rounded animate-pulse w-24 mb-3"></div>
+                 <div className="h-3 bg-slate-100 rounded animate-pulse w-full max-w-[200px]"></div>
+               </div>
+             ))
+          ) : (
+            cards.map(c => (
+              <button type="button" key={c.key} className="card text-left hover:shadow-md transition-shadow" onClick={() => openCard(c.key)}>
+                <p className="font-semibold">{c.label}</p>
+                {c.value !== undefined && <p className={`mt-2 text-2xl font-bold ${c.color}`}>{rupees(c.value)}</p>}
+                <p className="mt-2 text-sm text-slate-500">{c.desc}</p>
+              </button>
+            ))
+          )}
         </div>
       ) : activeCard === "download" ? (
         <div className="space-y-4 max-w-lg">
@@ -821,7 +837,40 @@ function Reports({ config }: any) {
       ) : (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{cards.find(c => c.key === activeCard)?.label}</h3>
-          {loadingDetails ? <p>Loading...</p> : (
+          {loadingDetails ? (
+            <>
+              <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      {["Date", "Bill #", "Receipt #", "Advance Receipt #", "Assigned To", "Amount"].map(h => (
+                        <th key={h} className="p-3"><div className="h-4 bg-slate-200 rounded animate-pulse w-20"></div></th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {[...Array(5)].map((_, i) => (
+                      <tr key={i}>
+                        {[...Array(6)].map((_, j) => <td key={j} className="p-3"><div className="h-4 bg-slate-100 rounded animate-pulse w-full max-w-[120px]"></div></td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="grid md:hidden gap-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
+                    {[...Array(4)].map((_, j) => (
+                      <div key={j} className="flex justify-between items-center">
+                        <div className="h-3 bg-slate-200 rounded animate-pulse w-20"></div>
+                        <div className="h-3 bg-slate-100 rounded animate-pulse w-24"></div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
             <>
               <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <table className="w-full text-left text-sm">
@@ -1188,6 +1237,39 @@ function PaymentModeField({ value, otherValue, onChange, onOtherChange }: any) {
   );
 }
 
+function AssignedToField({ value, staff, onChange }: any) {
+  const isOther = value && !staff.includes(value);
+  const mode = isOther ? "Other" : (value || "");
+
+  const handleModeChange = (newMode: string) => {
+    if (newMode === "Other") {
+      onChange("");
+    } else {
+      onChange(newMode);
+    }
+  };
+
+  return (
+    <>
+      <label>
+        <span className="label">Assigned To</span>
+        <select
+          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          value={mode}
+          onChange={(e) => handleModeChange(e.target.value)}
+        >
+          <option value="">Unassigned</option>
+          {staff.map((s: string) => <option key={s} value={s}>{s}</option>)}
+          <option value="Other">Other</option>
+        </select>
+      </label>
+      {mode === "Other" && (
+        <Field label="Specify name" value={isOther ? value : ""} onChange={onChange} />
+      )}
+    </>
+  );
+}
+
 function Field({ label, type = "text", value, onChange, list }: any) {
   return (
     <label>
@@ -1290,7 +1372,40 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
           </div>
         )}
       </div>
-      {loading ? <p>Loading...</p> : (
+      {loading ? (
+        <>
+          <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  {columns.map((c: any) => <th key={c.key} className="p-3"><div className="h-4 bg-slate-200 rounded animate-pulse w-24"></div></th>)}
+                  <th className="p-3"><div className="h-4 bg-slate-200 rounded animate-pulse w-16"></div></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {[...Array(5)].map((_, i) => (
+                  <tr key={i}>
+                    {columns.map((c: any) => <td key={c.key} className="p-3"><div className="h-4 bg-slate-100 rounded animate-pulse w-full max-w-[120px]"></div></td>)}
+                    <td className="p-3"><div className="h-4 bg-slate-100 rounded animate-pulse w-16"></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="grid md:hidden gap-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
+                {columns.slice(0, 4).map((c: any) => (
+                  <div key={c.key} className="flex justify-between items-center">
+                    <div className="h-3 bg-slate-200 rounded animate-pulse w-20"></div>
+                    <div className="h-3 bg-slate-100 rounded animate-pulse w-24"></div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
         <>
           <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full text-left text-sm">

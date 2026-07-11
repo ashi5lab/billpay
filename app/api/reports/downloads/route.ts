@@ -157,7 +157,7 @@ export async function GET(req: Request) {
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': \`attachment; filename="Report_${type}_${new Date().toISOString().slice(0, 10)}.xlsx"\`,
+        'Content-Disposition': `attachment; filename="Report_${type}_${new Date().toISOString().slice(0, 10)}.xlsx"`,
       }
     });
   } catch (e) {
