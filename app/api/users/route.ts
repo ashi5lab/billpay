@@ -7,7 +7,7 @@ export async function GET(req: Request) {
   try {
     const p = new URL(req.url).searchParams;
     const page = Math.max(1, Number(p.get("page") || 1)),
-      limit = Math.min(50, Math.max(1, Number(p.get("limit") || 50)));
+      limit = Math.min(100, Math.max(1, Number(p.get("limit") || 10)));
     const search = p.get("search") || "";
     
     let whereClause = "deleted_at IS NULL";
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
       items: items.rows,
       total: Number(count.rows[0].count),
       page,
-      pages: Math.ceil(Number(count.rows[0].count) / limit),
+      totalPages: Math.ceil(Number(count.rows[0].count) / limit) || 1,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

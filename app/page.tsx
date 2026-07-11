@@ -69,8 +69,8 @@ export default function App() {
         api("/api/config"),
         api("/api/staff"),
       ]);
-      setItems(i);
-      setCategories(c);
+      setItems(i.items || i);
+      setCategories(c.items || c);
       setConfig(s);
       setStaff(st);
     } catch {
@@ -747,6 +747,8 @@ function Reports({ config, notify }: any) {
   const [viewRecord, setViewRecord] = useState<any>(null);
   const [paymentModeFilter, setPaymentModeFilter] = useState("All");
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [detailsPage, setDetailsPage] = useState(1);
+  const [detailsPerPage, setDetailsPerPage] = useState(10);
 
   useEffect(() => { api("/api/reports").then(setR).catch(() => {}); }, []);
 
@@ -764,6 +766,7 @@ function Reports({ config, notify }: any) {
     setActiveCard(key);
     if (["inflow", "outflow", "profit", "sales"].includes(key)) {
       setLoadingDetails(true);
+      setDetailsPage(1);
       try {
         const res = await api(`/api/reports/details?type=${key}`);
         setDetails(res.items || res);
@@ -901,46 +904,73 @@ function Reports({ config, notify }: any) {
             </>
           ) : (
             <>
-              <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="p-3 font-semibold text-slate-700">Date</th>
-                      <th className="p-3 font-semibold text-slate-700">Bill #</th>
-                      <th className="p-3 font-semibold text-slate-700">Receipt #</th>
-                      <th className="p-3 font-semibold text-slate-700">Advance Receipt #</th>
-                      <th className="p-3 font-semibold text-slate-700">Assigned To</th>
-                      <th className="p-3 font-semibold text-slate-700">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {details.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-slate-500">No records found</td></tr>}
-                    {details.map((row, i) => (
-                      <tr key={row.id || i} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewRecord(row.raw)}>
-                        <td className="p-3">{row.date?.slice(0, 10)}</td>
-                        <td className="p-3">{row.bill_number || "—"}</td>
-                        <td className="p-3">{row.receipt_number || "—"}</td>
-                        <td className="p-3">{row.advance_receipt_number || "—"}</td>
-                        <td className="p-3">{row.assigned_to || "—"}</td>
-                        <td className="p-3">{rupees(row.amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="grid md:hidden gap-3">
-                {details.length === 0 && <p className="text-center text-slate-500 p-4">No records found</p>}
-                {details.map((row, i) => (
-                  <div key={row.id || i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm cursor-pointer" onClick={() => setViewRecord(row.raw)}>
-                    <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Date:</span><span>{row.date?.slice(0, 10)}</span></div>
-                    {row.bill_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Bill #:</span><span>{row.bill_number}</span></div>}
-                    {row.receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Receipt #:</span><span>{row.receipt_number}</span></div>}
-                    {row.advance_receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Advance Receipt #:</span><span>{row.advance_receipt_number}</span></div>}
-                    <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Assigned To:</span><span>{row.assigned_to || "—"}</span></div>
-                    <div className="flex justify-between text-sm font-bold"><span>Amount:</span><span>{rupees(row.amount)}</span></div>
-                  </div>
-                ))}
-              </div>
+              {(() => {
+                const totalDetailsPages = Math.ceil(details.length / detailsPerPage) || 1;
+                const currentDetails = details.slice((detailsPage - 1) * detailsPerPage, detailsPage * detailsPerPage);
+                return (
+                  <>
+                    <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="p-3 font-semibold text-slate-700">Date</th>
+                            <th className="p-3 font-semibold text-slate-700">Bill #</th>
+                            <th className="p-3 font-semibold text-slate-700">Receipt #</th>
+                            <th className="p-3 font-semibold text-slate-700">Advance Receipt #</th>
+                            <th className="p-3 font-semibold text-slate-700">Assigned To</th>
+                            <th className="p-3 font-semibold text-slate-700">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {currentDetails.length === 0 && <tr><td colSpan={6} className="p-6 text-center text-slate-500">No records found</td></tr>}
+                          {currentDetails.map((row: any, i: number) => (
+                            <tr key={row.id || i} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewRecord(row.raw)}>
+                              <td className="p-3">{row.date?.slice(0, 10)}</td>
+                              <td className="p-3">{row.bill_number || "—"}</td>
+                              <td className="p-3">{row.receipt_number || "—"}</td>
+                              <td className="p-3">{row.advance_receipt_number || "—"}</td>
+                              <td className="p-3">{row.assigned_to || "—"}</td>
+                              <td className="p-3">{rupees(row.amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="grid md:hidden gap-3">
+                      {currentDetails.length === 0 && <p className="text-center text-slate-500 p-4">No records found</p>}
+                      {currentDetails.map((row: any, i: number) => (
+                        <div key={row.id || i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm cursor-pointer" onClick={() => setViewRecord(row.raw)}>
+                          <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Date:</span><span>{row.date?.slice(0, 10)}</span></div>
+                          {row.bill_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Bill #:</span><span>{row.bill_number}</span></div>}
+                          {row.receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Receipt #:</span><span>{row.receipt_number}</span></div>}
+                          {row.advance_receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Advance Receipt #:</span><span>{row.advance_receipt_number}</span></div>}
+                          <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Assigned To:</span><span>{row.assigned_to || "—"}</span></div>
+                          <div className="flex justify-between text-sm font-bold"><span>Amount:</span><span>{rupees(row.amount)}</span></div>
+                        </div>
+                      ))}
+                    </div>
+                    {totalDetailsPages > 0 && (
+                      <div className="flex flex-col sm:flex-row items-center justify-between mt-6 bg-slate-50 p-4 rounded-xl border border-slate-200 gap-4">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <span>Show</span>
+                          <select className="rounded-md border border-slate-300 px-2 py-1" value={detailsPerPage} onChange={(e) => { setDetailsPerPage(Number(e.target.value)); setDetailsPage(1); }}>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                          </select>
+                          <span>records</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <button type="button" className="button-secondary text-sm disabled:opacity-50" disabled={detailsPage === 1} onClick={() => setDetailsPage(p => p - 1)}>Previous</button>
+                          <span className="text-sm font-medium text-slate-600">Page {detailsPage} of {totalDetailsPages}</span>
+                          <button type="button" className="button-secondary text-sm disabled:opacity-50" disabled={detailsPage === totalDetailsPages} onClick={() => setDetailsPage(p => p + 1)}>Next</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </>
           )}
         </div>
@@ -1356,6 +1386,7 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
   const [loading, setLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<any>(null);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
 
   const loadData = async () => {
@@ -1366,6 +1397,7 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
       if (startDate) q.append("startDate", startDate);
       if (endDate) q.append("endDate", endDate);
       q.append("page", page.toString());
+      q.append("limit", limit.toString());
       const separator = endpoint.includes("?") ? "&" : "?";
       const res = await api(endpoint + separator + q.toString());
       setData(res.items || res);
@@ -1379,12 +1411,12 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
   useEffect(() => {
     const t = setTimeout(loadData, 300);
     return () => clearTimeout(t);
-  }, [search, startDate, endDate, endpoint, reloadTrigger, page]);
+  }, [search, startDate, endDate, endpoint, reloadTrigger, page, limit]);
 
   // Reset page when search or filters change
   useEffect(() => {
     setPage(1);
-  }, [search, startDate, endDate, endpoint]);
+  }, [search, startDate, endDate, endpoint, limit]);
 
   return (
     <div className="space-y-4">
@@ -1485,21 +1517,33 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
             ))}
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
-              <button 
-                type="button"
-                className="button-secondary text-sm disabled:opacity-50" 
-                disabled={page === 1} 
-                onClick={() => setPage(p => p - 1)}
-              >Previous</button>
-              <span className="text-sm font-medium text-slate-600">Page {page} of {totalPages}</span>
-              <button 
-                type="button"
-                className="button-secondary text-sm disabled:opacity-50" 
-                disabled={page === totalPages} 
-                onClick={() => setPage(p => p + 1)}
-              >Next</button>
+          {totalPages > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between mt-6 bg-slate-50 p-4 rounded-xl border border-slate-200 gap-4">
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <span>Show</span>
+                <select className="rounded-md border border-slate-300 px-2 py-1" value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>records</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <button 
+                  type="button"
+                  className="button-secondary text-sm disabled:opacity-50" 
+                  disabled={page === 1} 
+                  onClick={() => setPage(p => p - 1)}
+                >Previous</button>
+                <span className="text-sm font-medium text-slate-600">Page {page} of {totalPages}</span>
+                <button 
+                  type="button"
+                  className="button-secondary text-sm disabled:opacity-50" 
+                  disabled={page === totalPages} 
+                  onClick={() => setPage(p => p + 1)}
+                >Next</button>
+              </div>
             </div>
           )}
         </>

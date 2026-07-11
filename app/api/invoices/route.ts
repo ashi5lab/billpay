@@ -6,7 +6,7 @@ export async function GET(req: Request) {
   try {
     const p = new URL(req.url).searchParams;
     const page = Math.max(1, Number(p.get("page") || 1)),
-      limit = Math.min(50, Math.max(1, Number(p.get("limit") || 50)));
+      limit = Math.min(100, Math.max(1, Number(p.get("limit") || 10)));
     const q = p.get("search") || "";
     const startDate = p.get("startDate") || "";
     const endDate = p.get("endDate") || "";
@@ -53,6 +53,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       items: invoices,
       total: Number(count.rows[0].count),
+      totalPages: Math.ceil(Number(count.rows[0].count) / limit) || 1,
       page,
       limit,
     });

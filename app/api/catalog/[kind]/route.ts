@@ -8,20 +8,34 @@ export async function GET(req: Request, { params }: { params: Promise<{kind: str
     if (!table) return NextResponse.json({ error: "Unknown catalog" }, {status:404}); 
 
     const p = new URL(req.url).searchParams;
+    const page = Math.max(1, Number(p.get("page") || 1)),
+      limit = Math.min(100, Math.max(1, Number(p.get("limit") || 10)));
     const search = p.get("search") || "";
     
-    let query = `SELECT * FROM ${table} WHERE deleted_at IS NULL`;
-    const sqlParams: any[] = [];
+    let whereClause = `deleted_at IS NULL`;
+    const sqlParams: any[] = [limit, (page - 1) * limit];
+    let paramCount = 3;
     
     if (search) {
-      query += ` AND name ILIKE $1`;
+      whereClause += ` AND name ILIKE $${paramCount++}`;
       sqlParams.push(`%${search}%`);
     }
     
-    query += ` ORDER BY name`;
+    const query = `SELECT * FROM ${table} WHERE ${whereClause} ORDER BY name LIMIT $1 OFFSET $2`;
+    const countQuery = `SELECT count(*) FROM ${table} WHERE ${whereClause.replace(/\$(\d+)/g, (m, n) => `$${Number(n) - 2}`)}`;
 
-    const { rows } = await db.query(query, sqlParams); 
-    return NextResponse.json(rows); 
+    const [items, count] = await Promise.all([
+      db.query(query, sqlParams),
+      db.query(countQuery, sqlParams.slice(2)),
+    ]);
+    
+    return NextResponse.json({
+      items: items.rows,
+      total: Number(count.rows[0].count),
+      totalPages: Math.ceil(Number(count.rows[0].count) / limit) || 1,
+      page,
+      limit,
+    });
   } catch { 
     return NextResponse.json({error:"Unauthorised"},{status:401}); 
   } 
