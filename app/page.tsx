@@ -161,7 +161,7 @@ export default function App() {
           {view === "advance" && <AdvanceForm {...props} />}{" "}
           {view === "inventory" && <Inventory {...props} />}{" "}
           {view === "expenses" && <Expenses {...props} />}{" "}
-          {view === "reports" && <Reports config={config} />}{" "}
+          {view === "reports" && <Reports config={config} notify={notify} />}{" "}
           {view === "config" && (
             <Config config={config} setConfig={setConfig} notify={notify} />
           )}
@@ -249,6 +249,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   const [username, setUsername] = useState("admin"),
     [password, setPassword] = useState(""),
     [error, setError] = useState(""),
+    [saving, setSaving] = useState(false),
     [install, setInstall] = useState<any>(null);
   useEffect(() => {
     const listener = (e: any) => {
@@ -261,6 +262,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setSaving(true);
     try {
       await api("/api/auth/login", {
         method: "POST",
@@ -269,6 +271,8 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
       onSuccess();
     } catch (e: any) {
       setError(e.message);
+    } finally {
+      setSaving(false);
     }
   };
   return (
@@ -292,7 +296,7 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
             onChange={setPassword}
           />
           {error && <p className="text-sm text-rose-600">{error}</p>}
-          <button className="button w-full">Sign in</button>
+          <button disabled={saving} className="button w-full">{saving ? <><Spinner /> Signing in…</> : "Sign in"}</button>
         </form>
         <button
           className="button-secondary mt-4 w-full"
@@ -513,7 +517,7 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
               {selected && <p className="text-sm">Balance due: {rupees(balance)}</p>}
             </div>
           </div>
-          <button disabled={saving} className="button w-full">{saving ? "Saving…" : (fId ? "Update invoice" : "Create invoice")}</button>
+          <button disabled={saving} className="button w-full">{saving ? <><Spinner /> Saving…</> : (fId ? "Update invoice" : "Create invoice")}</button>
         </form>
       ) : (
         <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_receipt_number", label: "Advance Receipt", render: (r: any) => r.advance_receipt_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} />
@@ -525,9 +529,11 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
   const [tab, setTab] = useState("create");
   const [f, setF] = useState<any>({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" });
   const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
       let r;
       if (f.id) {
@@ -541,7 +547,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
       setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" });
       setReloadTrigger(x => x + 1);
       setTab("manage");
-    } catch (e: any) { notify(e.message); }
+    } catch (e: any) { notify(e.message); } finally { setSaving(false); }
   };
   const edit = (row: any) => { setF({ id: row.id, customer_name: row.customer_name, customer_phone: row.customer_phone || "", customer_place: row.customer_place || "", advance_amount: row.advance_amount, notes: row.notes || "", date: row.issued_at?.slice(0, 10) || row.date || new Date().toISOString().slice(0, 10), assigned_to: row.assigned_to || "", payment_mode: row.payment_mode || "UPI", payment_mode_other: row.payment_mode_other || "" }); setTab("create"); };
   const remove = async (row: any) => { await api("/api/advances", { method: "DELETE", body: JSON.stringify({ id: row.id }) }); setReloadTrigger(x => x + 1); notify("Advance deleted."); };
@@ -567,7 +573,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
             <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v:any)=>setF({...f, payment_mode: v})} onOtherChange={(v:any)=>setF({...f, payment_mode_other: v})} />
           </div>
           <Field label="Notes" value={f.notes} onChange={(v: any) => setF({ ...f, notes: v })} />
-          <button className="button w-full">{f.id ? "Update advance" : "Create advance receipt"}</button>
+          <button disabled={saving} className="button w-full">{saving ? <><Spinner /> Saving…</> : (f.id ? "Update advance" : "Create advance receipt")}</button>
         </form>
       ) : (
         <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{ key: "receipt_number", label: "Receipt #" }, { key: "issued_at", label: "Date", render: (r: any) => r.issued_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "attached_invoice_number", label: "Attached Bill", render: (r: any) => r.attached_invoice_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "advance_amount", label: "Amount", render: (r: any) => rupees(r.advance_amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} />
@@ -579,9 +585,11 @@ function Inventory({ items, reload, notify }: any) {
   const [tab, setTab] = useState("create");
   const [f, setF] = useState<any>({ id: "", name: "", default_price: "" });
   const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
       if (f.id) {
         await api("/api/catalog/items", { method: "PATCH", body: JSON.stringify({ ...f, default_price: amount(f.default_price) }) });
@@ -594,7 +602,7 @@ function Inventory({ items, reload, notify }: any) {
       reload();
       setReloadTrigger(x => x + 1);
       setTab("manage");
-    } catch (e: any) { notify(e.message); }
+    } catch (e: any) { notify(e.message); } finally { setSaving(false); }
   };
 
   const edit = (row: any) => { setF({ id: row.id, name: row.name, default_price: row.default_price }); setTab("create"); };
@@ -613,7 +621,7 @@ function Inventory({ items, reload, notify }: any) {
         <form onSubmit={submit} className="card grid gap-2 sm:grid-cols-3">
           <input required placeholder="Item name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
           <input type="number" min="0" step="0.01" placeholder="Selling price" value={f.default_price} onChange={(e) => setF({ ...f, default_price: e.target.value })} />
-          <button className="button">{f.id ? "Update item" : "Add item"}</button>
+          <button disabled={saving} className="button">{saving ? <><Spinner /> Saving…</> : (f.id ? "Update item" : "Add item")}</button>
         </form>
       ) : (
         <DataTable endpoint="/api/catalog/items" filterDate={false} reloadTrigger={reloadTrigger} columns={[{ key: "name", label: "Name" }, { key: "default_price", label: "Price", render: (r: any) => rupees(r.default_price) }]} onEdit={edit} onDelete={remove} />
@@ -626,6 +634,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
   const [f, setF] = useState<any>({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", assigned_to: "", payment_mode: "UPI" });
   const [cat, setCat] = useState("");
   const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const [editCat, setEditCat] = useState<any>(null);
   const [catName, setCatName] = useState("");
@@ -633,6 +642,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
       if (f.id) {
         await api("/api/expenses", { method: "PATCH", body: JSON.stringify(f) });
@@ -644,7 +654,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
       setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", payment_mode: "UPI", payment_mode_other: "" });
       setReloadTrigger(x => x + 1);
       setTab("manage");
-    } catch (e: any) { notify(e.message); }
+    } catch (e: any) { notify(e.message); } finally { setSaving(false); }
   };
   const addCategory = async () => {
     try { if (!cat.trim()) return; await api("/api/catalog/categories", { method: "POST", body: JSON.stringify({ name: cat }) }); setCat(""); await reload(); notify("Category added."); } catch (e: any) { notify(e.message); }
@@ -715,7 +725,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
             <Field label="Date" type="date" value={f.expense_date} onChange={(v: any) => setF({ ...f, expense_date: v })} />
             <AssignedToField value={f.assigned_to} staff={staff} onChange={(v: any) => setF({ ...f, assigned_to: v })} />
             <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v:any)=>setF({...f, payment_mode: v})} onOtherChange={(v:any)=>setF({...f, payment_mode_other: v})} />
-            <button className="button sm:col-span-2">{f.id ? "Update expense" : "Save expense"}</button>
+            <button disabled={saving} className="button sm:col-span-2">{saving ? <><Spinner /> Saving…</> : (f.id ? "Update expense" : "Save expense")}</button>
           </form>
           <div className="card">
             <h3 className="font-semibold">Categories</h3>
@@ -729,13 +739,14 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
     </div>
   );
 }
-function Reports({ config }: any) {
+function Reports({ config, notify }: any) {
   const [r, setR] = useState<any>();
   const [activeCard, setActiveCard] = useState<string | null>(null);
   const [details, setDetails] = useState<any[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [viewRecord, setViewRecord] = useState<any>(null);
   const [paymentModeFilter, setPaymentModeFilter] = useState("All");
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => { api("/api/reports").then(setR).catch(() => {}); }, []);
 
@@ -763,6 +774,24 @@ function Reports({ config }: any) {
     }
   };
 
+  const handleDownload = async (url: string, filename: string, key: string) => {
+    setDownloading(key);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch (e: any) {
+      notify("Download failed: " + e.message);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4 border-b pb-4">
@@ -770,10 +799,10 @@ function Reports({ config }: any) {
         <div className="flex gap-2">
           {activeCard && <button type="button" className="button-secondary text-sm px-4 py-1.5" onClick={() => setActiveCard(null)}>Back</button>}
           {(!activeCard || ["inflow", "outflow", "profit", "sales"].includes(activeCard)) && (
-            <a href="/api/reports/export" download className="button text-sm px-4 py-1.5">Export Excel</a>
+            <button disabled={downloading === "export"} onClick={() => handleDownload("/api/reports/export", "Export.xlsx", "export")} className="button text-sm px-4 py-1.5">{downloading === "export" ? <><Spinner /> Downloading…</> : "Export Excel"}</button>
           )}
           {(activeCard === "payments-in" || activeCard === "payments-out") && (
-            <a href={`/api/reports/downloads?type=${activeCard}`} download className="button text-sm px-4 py-1.5">Export Excel</a>
+            <button disabled={downloading === activeCard} onClick={() => handleDownload(`/api/reports/downloads?type=${activeCard}`, `Report_${activeCard}.xlsx`, activeCard)} className="button text-sm px-4 py-1.5">{downloading === activeCard ? <><Spinner /> Downloading…</> : "Export Excel"}</button>
           )}
         </div>
       </div>
@@ -801,9 +830,9 @@ function Reports({ config }: any) {
         <div className="space-y-4 max-w-lg">
           <h3 className="font-semibold text-lg">Advanced Downloads</h3>
           <div className="card space-y-3">
-            <a href="/api/reports/downloads?type=payments-all" download className="block w-full text-center button-secondary">Download Payments All (Inflow & Outflow)</a>
-            <a href="/api/reports/downloads?type=all-invoices" download className="block w-full text-center button-secondary">Download All Bills & Invoices</a>
-            <a href="/api/reports/downloads?type=all-expenses" download className="block w-full text-center button-secondary">Download All Expenses</a>
+            <button disabled={downloading === "payments-all"} onClick={() => handleDownload("/api/reports/downloads?type=payments-all", "Report_Payments_All.xlsx", "payments-all")} className="block w-full text-center button-secondary">{downloading === "payments-all" ? <><Spinner /> Downloading…</> : "Download Payments All (Inflow & Outflow)"}</button>
+            <button disabled={downloading === "all-invoices"} onClick={() => handleDownload("/api/reports/downloads?type=all-invoices", "Report_All_Invoices.xlsx", "all-invoices")} className="block w-full text-center button-secondary">{downloading === "all-invoices" ? <><Spinner /> Downloading…</> : "Download All Bills & Invoices"}</button>
+            <button disabled={downloading === "all-expenses"} onClick={() => handleDownload("/api/reports/downloads?type=all-expenses", "Report_All_Expenses.xlsx", "all-expenses")} className="block w-full text-center button-secondary">{downloading === "all-expenses" ? <><Spinner /> Downloading…</> : "Download All Expenses"}</button>
           </div>
         </div>
       ) : activeCard === "payments-in" || activeCard === "payments-out" ? (
@@ -922,8 +951,10 @@ function Reports({ config }: any) {
   );
 }
 function Config({ config, setConfig, notify }: any) {
+  const [saving, setSaving] = useState(false);
   const save = async (e: FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
       const x = await api("/api/config", {
         method: "PUT",
@@ -933,6 +964,8 @@ function Config({ config, setConfig, notify }: any) {
       notify("Store details saved.");
     } catch (e: any) {
       notify(e.message);
+    } finally {
+      setSaving(false);
     }
   };
   return (
@@ -960,7 +993,7 @@ function Config({ config, setConfig, notify }: any) {
           onChange={(v: any) => setConfig({ ...config, gstin: v })}
         />
       </div>
-      <button className="button">Save configuration</button>
+      <button disabled={saving} className="button">{saving ? <><Spinner /> Saving…</> : "Save configuration"}</button>
     </form>
   );
 }
@@ -968,9 +1001,11 @@ function Users({ notify }: any) {
   const [tab, setTab] = useState("create");
   const [f, setF] = useState<any>({ id: "", name: "", email: "", password: "" });
   const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    setSaving(true);
     try {
       if (f.id) {
         await api("/api/users", { method: "PATCH", body: JSON.stringify(f) });
@@ -982,7 +1017,7 @@ function Users({ notify }: any) {
       setF({ id: "", name: "", email: "", password: "" });
       setReloadTrigger(x => x + 1);
       setTab("manage");
-    } catch (e: any) { notify(e.message); }
+    } catch (e: any) { notify(e.message); } finally { setSaving(false); }
   };
 
   const edit = (row: any) => { setF({ id: row.id, name: row.name, email: row.email, password: "" }); setTab("create"); };
@@ -1003,7 +1038,7 @@ function Users({ notify }: any) {
           <Field label="Email (Username) *" type="email" value={f.email} onChange={(v: any) => setF({ ...f, email: v })} disabled={!!f.id} />
           <Field label={f.id ? "New Password (leave blank to keep current)" : "Password *"} type="password" value={f.password} onChange={(v: any) => setF({ ...f, password: v })} />
           <div className="sm:col-span-2">
-            <button className="button">{f.id ? "Update User" : "Create User"}</button>
+            <button disabled={saving} className="button">{saving ? <><Spinner /> Saving…</> : (f.id ? "Update User" : "Create User")}</button>
             {f.id && <button type="button" className="button-secondary ml-3" onClick={() => { setF({ id: "", name: "", email: "", password: "" }); setTab("manage"); }}>Cancel</button>}
           </div>
         </form>
@@ -1470,5 +1505,14 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
         </>
       )}
     </div>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
   );
 }
