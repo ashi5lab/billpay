@@ -1359,7 +1359,12 @@ function PrintableReceipt({ data, config, close }: any) {
   return (
     <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/50 p-4">
       <div className="mx-auto max-w-md">
-        <div id="receipt" className="rounded-2xl bg-white p-6 shadow-2xl">
+        <div id="receipt" className="rounded-2xl bg-white p-6 shadow-2xl relative">
+          <button onClick={close} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 print:hidden" aria-label="Close">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
           <div className="text-center">
             <h2 className="text-xl font-bold text-brand-700">
               {config?.store_name || "Record"}
@@ -1476,9 +1481,6 @@ function PrintableReceipt({ data, config, close }: any) {
             </button>
           )}
         </div>
-        <button onClick={close} className="mt-2 w-full text-sm text-white">
-          Close
-        </button>
       </div>
     </div>
   );
