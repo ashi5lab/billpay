@@ -29,7 +29,7 @@ export async function GET(req: Request) {
         "SELECT invoice_number as reference, 'Invoice' as type, customer_name, assigned_to, date, payment_mode, payment_mode_other, grand_total as amount FROM zalish_invoices WHERE deleted_at IS NULL AND grand_total > 0"
       );
       const { rows: advances } = await db.query(
-        "SELECT receipt_number as reference, 'Advance' as type, customer_name, assigned_to, date, payment_mode, payment_mode_other, advance_amount as amount FROM zalish_advances WHERE deleted_at IS NULL AND advance_amount > 0"
+        "SELECT receipt_number as reference, 'Advance' as type, customer_name, assigned_to, date, payment_mode, payment_mode_other, advance_amount as amount FROM zalish_advances WHERE deleted_at IS NULL AND advance_amount > 0 AND settled_invoice_id IS NULL"
       );
       
       let allInflow = [...invoices, ...advances].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
