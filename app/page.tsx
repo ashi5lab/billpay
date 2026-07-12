@@ -780,6 +780,10 @@ function Reports({ config, notify }: any) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [detailsPage, setDetailsPage] = useState(1);
   const [detailsPerPage, setDetailsPerPage] = useState(10);
+  const [aggregationRange, setAggregationRange] = useState("current_month");
+  const [aggregationCustomStart, setAggregationCustomStart] = useState(new Date().toISOString().slice(0, 10));
+  const [aggregationCustomEnd, setAggregationCustomEnd] = useState(new Date().toISOString().slice(0, 10));
+  const [aggregationSummary, setAggregationSummary] = useState<any>(null);
 
   useEffect(() => { api("/api/reports").then(setR).catch(() => {}); }, []);
 
@@ -795,7 +799,22 @@ function Reports({ config, notify }: any) {
 
   const openCard = async (key: string) => {
     setActiveCard(key);
-    if (["inflow", "outflow", "profit", "sales"].includes(key)) {
+    if (key === "sales") {
+      if (aggregationRange === "custom" && (!aggregationCustomStart || !aggregationCustomEnd)) {
+         return;
+      }
+      setLoadingDetails(true);
+      try {
+        let url = `/api/reports/aggregation?range=${aggregationRange}`;
+        if (aggregationRange === "custom") {
+           url += `&start=${aggregationCustomStart}&end=${aggregationCustomEnd}`;
+        }
+        const res = await api(url);
+        setDetails(res.items || []);
+        setAggregationSummary(res.summary);
+      } catch { setDetails([]); setAggregationSummary(null); }
+      setLoadingDetails(false);
+    } else if (["inflow", "outflow", "profit"].includes(key)) {
       setLoadingDetails(true);
       setDetailsPage(1);
       try {
@@ -807,6 +826,12 @@ function Reports({ config, notify }: any) {
       setPaymentModeFilter("All");
     }
   };
+
+  useEffect(() => {
+    if (activeCard === "sales") {
+      openCard("sales");
+    }
+  }, [aggregationRange, aggregationCustomStart, aggregationCustomEnd]);
 
   const handleDownload = async (url: string, filename: string, key: string) => {
     setDownloading(key);
@@ -868,6 +893,111 @@ function Reports({ config, notify }: any) {
             <button disabled={downloading === "all-invoices"} onClick={() => handleDownload("/api/reports/downloads?type=all-invoices", "Report_All_Invoices.xlsx", "all-invoices")} className="block w-full text-center button-secondary">{downloading === "all-invoices" ? <><Spinner /> Downloading…</> : "Download All Bills & Invoices"}</button>
             <button disabled={downloading === "all-expenses"} onClick={() => handleDownload("/api/reports/downloads?type=all-expenses", "Report_All_Expenses.xlsx", "all-expenses")} className="block w-full text-center button-secondary">{downloading === "all-expenses" ? <><Spinner /> Downloading…</> : "Download All Expenses"}</button>
           </div>
+        </div>
+      ) : activeCard === "sales" ? (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h3 className="font-semibold text-lg">{cards.find(c => c.key === activeCard)?.label}</h3>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white" value={aggregationRange} onChange={e => setAggregationRange(e.target.value)}>
+                <option value="current_month">Current Month</option>
+                <option value="all">All Time</option>
+                <option value="custom">Custom Range</option>
+              </select>
+              {aggregationRange === "custom" && (
+                <div className="flex gap-2 items-center">
+                  <input type="date" className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white" value={aggregationCustomStart} onChange={e => setAggregationCustomStart(e.target.value)} />
+                  <span className="text-slate-400 text-sm">to</span>
+                  <input type="date" className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white" value={aggregationCustomEnd} onChange={e => setAggregationCustomEnd(e.target.value)} />
+                </div>
+              )}
+            </div>
+          </div>
+          {aggregationSummary && (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="card bg-emerald-50 border-emerald-100">
+                <p className="font-semibold text-emerald-900">Total Inflow (Credit)</p>
+                <p className="mt-2 text-2xl font-bold text-emerald-700">{rupees(aggregationSummary.inflow)}</p>
+              </div>
+              <div className="card bg-rose-50 border-rose-100">
+                <p className="font-semibold text-rose-900">Total Outflow (Debit)</p>
+                <p className="mt-2 text-2xl font-bold text-rose-700">{rupees(aggregationSummary.outflow)}</p>
+              </div>
+              <div className={`card ${aggregationSummary.profit >= 0 ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"}`}>
+                <p className={`font-semibold ${aggregationSummary.profit >= 0 ? "text-emerald-900" : "text-rose-900"}`}>{aggregationSummary.profit >= 0 ? "Net Profit" : "Net Loss"}</p>
+                <p className={`mt-2 text-2xl font-bold ${aggregationSummary.profit >= 0 ? "text-emerald-700" : "text-rose-700"}`}>{rupees(Math.abs(aggregationSummary.profit))}</p>
+              </div>
+            </div>
+          )}
+          {loadingDetails ? (
+            <div className="flex justify-center p-8"><Spinner /></div>
+          ) : (
+            <div className="space-y-3">
+              {(() => {
+                const totalDetailsPages = Math.ceil(details.length / detailsPerPage) || 1;
+                const currentDetails = details.slice((detailsPage - 1) * detailsPerPage, detailsPage * detailsPerPage);
+                return (
+                  <>
+                    <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 border-b border-slate-200">
+                          <tr>
+                            <th className="p-3 font-semibold text-slate-700">Date</th>
+                            <th className="p-3 font-semibold text-slate-700">Type</th>
+                            <th className="p-3 font-semibold text-slate-700">Description</th>
+                            <th className="p-3 font-semibold text-slate-700 text-right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {currentDetails.length === 0 && <tr><td colSpan={4} className="p-6 text-center text-slate-500">No records found</td></tr>}
+                          {currentDetails.map((row: any, i: number) => (
+                            <tr key={row.id || i} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewRecord(row.raw)}>
+                              <td className="p-3">{row.date?.slice(0, 10)}</td>
+                              <td className="p-3"><span className={`px-2 py-1 rounded text-xs font-bold ${row.type === "Credit" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>{row.type}</span></td>
+                              <td className="p-3">{row.description}</td>
+                              <td className={`p-3 text-right font-medium ${row.type === "Credit" ? "text-emerald-600" : "text-rose-600"}`}>{row.type === "Credit" ? "+" : "-"}{rupees(row.amount)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="grid md:hidden gap-3">
+                      {currentDetails.length === 0 && <p className="text-center text-slate-500 p-4">No records found</p>}
+                      {currentDetails.map((row: any, i: number) => (
+                        <div key={row.id || i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm cursor-pointer" onClick={() => setViewRecord(row.raw)}>
+                          <div className="flex justify-between text-sm">
+                            <span className="font-semibold text-slate-500">{row.date?.slice(0, 10)}</span>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${row.type === "Credit" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>{row.type}</span>
+                          </div>
+                          <div className="text-sm">{row.description}</div>
+                          <div className={`text-right font-bold ${row.type === "Credit" ? "text-emerald-600" : "text-rose-600"}`}>{row.type === "Credit" ? "+" : "-"}{rupees(row.amount)}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {totalDetailsPages > 0 && (
+                      <div className="flex flex-col sm:flex-row items-center justify-between mt-6 bg-slate-50 p-4 rounded-xl border border-slate-200 gap-4">
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <span>Show</span>
+                          <select className="rounded-md border border-slate-300 px-2 py-1" value={detailsPerPage} onChange={(e) => { setDetailsPerPage(Number(e.target.value)); setDetailsPage(1); }}>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                          </select>
+                          <span>records</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <button type="button" className="button-secondary text-sm disabled:opacity-50" disabled={detailsPage === 1} onClick={() => setDetailsPage(p => p - 1)}>Previous</button>
+                          <span className="text-sm font-medium text-slate-600">Page {detailsPage} of {totalDetailsPages}</span>
+                          <button type="button" className="button-secondary text-sm disabled:opacity-50" disabled={detailsPage === totalDetailsPages} onClick={() => setDetailsPage(p => p + 1)}>Next</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </div>
       ) : activeCard === "payments-in" || activeCard === "payments-out" ? (
         <div className="space-y-4">
