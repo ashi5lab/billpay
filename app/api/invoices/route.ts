@@ -110,10 +110,18 @@ export async function POST(req: Request) {
     const dt = new Date(),
       base = `ZA-${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, "0")}/${String(dt.getDate()).padStart(2, "0")}`;
     const n = await c.query(
-      "SELECT count(*) FROM zalish_invoices WHERE invoice_number LIKE $1",
+      "SELECT invoice_number FROM zalish_invoices WHERE invoice_number LIKE $1",
       [`${base}/%`],
     );
-    const invoiceNumber = `${base}/${Number(n.rows[0].count) + 1}`;
+    let nextNum = 1;
+    if (n.rows.length > 0) {
+      const max = Math.max(...n.rows.map((r: any) => {
+        const parts = r.invoice_number.split("/");
+        return parseInt(parts[parts.length - 1], 10) || 0;
+      }));
+      nextNum = max + 1;
+    }
+    const invoiceNumber = `${base}/${String(nextNum).padStart(2, "0")}`;
     const advanceAmount = Math.min(number(advance?.advance_amount), total),
       balance = roundMoney(total - advanceAmount);
     const paymentMode = b.payment_mode || "UPI";

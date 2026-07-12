@@ -67,12 +67,21 @@ export async function POST(req: Request) {
   const user = await getCurrentUser() || "system";
   const date = b.date || new Date().toISOString().split("T")[0];
   const result = await transaction(async (c) => {
-    const day = number("ZA");
+    const dt = new Date(date),
+      base = `ZA-AD-${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, "0")}/${String(dt.getDate()).padStart(2, "0")}`;
     const { rows: seq } = await c.query(
-      "SELECT count(*) FROM zalish_advances WHERE receipt_number LIKE $1",
-      [`${day}/%`],
+      "SELECT receipt_number FROM zalish_advances WHERE receipt_number LIKE $1",
+      [`${base}/%`],
     );
-    const receipt = `${day}/${Number(seq[0].count) + 1}`;
+    let nextNum = 1;
+    if (seq.length > 0) {
+      const max = Math.max(...seq.map((r: any) => {
+        const parts = r.receipt_number.split("/");
+        return parseInt(parts[parts.length - 1], 10) || 0;
+      }));
+      nextNum = max + 1;
+    }
+    const receipt = `${base}/${String(nextNum).padStart(2, "0")}`;
     const paymentMode = b.payment_mode || "UPI";
     const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const { rows } = await c.query(
