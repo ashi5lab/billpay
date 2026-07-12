@@ -65,7 +65,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const b = await req.json();
   const user = await getCurrentUser() || "system";
-  const date = b.date || new Date().toISOString().split("T")[0];
+  const date = b.date || new Date().toLocaleDateString("en-CA");
   const result = await transaction(async (c) => {
     const dt = new Date(date),
       base = `ZA-AD-${dt.getFullYear()}/${String(dt.getMonth() + 1).padStart(2, "0")}/${String(dt.getDate()).padStart(2, "0")}`;
@@ -115,7 +115,7 @@ export async function PATCH(req: Request) {
     const b = await req.json();
     if (!b.id) throw new Error("Advance ID is required");
     const user = await getCurrentUser() || "system";
-    const date = b.date || new Date().toISOString().split("T")[0];
+    const date = b.date || new Date().toLocaleDateString("en-CA");
     const paymentMode = b.payment_mode || "UPI";
     const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const advance = await transaction(async (c) => {

@@ -95,7 +95,7 @@ export async function POST(req: Request) {
     discount = Math.min(number(b.discount), roundMoney(subtotal + tax)),
     total = roundMoney(subtotal + tax - discount);
   const user = await getCurrentUser() || "system";
-  const date = b.date || new Date().toISOString().split("T")[0];
+  const date = b.date || new Date().toLocaleDateString("en-CA");
   const result = await transaction(async (c) => {
     let advance: any = null;
     if (b.advance_id) {
@@ -126,8 +126,9 @@ export async function POST(req: Request) {
       balance = roundMoney(total - advanceAmount);
     const paymentMode = b.payment_mode || "UPI";
     const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
+    const paymentStatus = b.payment_status || "PAID";
     const inv = await c.query(
-      "INSERT INTO zalish_invoices(invoice_number,customer_name,customer_phone,customer_place,subtotal,discount,tax_rate,tax_amount,grand_total,advance_id,advance_amount,balance_due,date,created_by,assigned_to,payment_mode,payment_mode_other) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *",
+      "INSERT INTO zalish_invoices(invoice_number,customer_name,customer_phone,customer_place,subtotal,discount,tax_rate,tax_amount,grand_total,advance_id,advance_amount,balance_due,date,created_by,assigned_to,payment_mode,payment_mode_other,payment_status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *",
       [
         invoiceNumber,
         b.customer_name,
@@ -145,7 +146,8 @@ export async function POST(req: Request) {
         user,
         b.assigned_to || null,
         paymentMode,
-        paymentModeOther
+        paymentModeOther,
+        paymentStatus
       ],
     );
     for (const i of cleanItems) {
@@ -218,14 +220,16 @@ export async function PATCH(req: Request) {
          advance = a.rows[0];
       }
       
-      const date = b.date || oldInvoice.date || new Date().toISOString().slice(0, 10);
+      const date = b.date || oldInvoice.date || new Date().toLocaleDateString("en-CA");
       const advanceAmount = Math.min(Number(advance?.advance_amount || 0), total);
       const balance = roundMoney(total - advanceAmount);
       const paymentMode = b.payment_mode || oldInvoice.payment_mode || "UPI";
       const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
 
+      const paymentStatus = b.payment_status || oldInvoice.payment_status || "PAID";
+
       const inv = await c.query(
-        "UPDATE zalish_invoices SET customer_name=$1, customer_phone=$2, customer_place=$3, subtotal=$4, discount=$5, tax_rate=$6, tax_amount=$7, grand_total=$8, advance_id=$9, advance_amount=$10, balance_due=$11, date=$12, updated_by=$13, assigned_to=$14, payment_mode=$15, payment_mode_other=$16, is_edited=TRUE WHERE id=$17 RETURNING *",
+        "UPDATE zalish_invoices SET customer_name=$1, customer_phone=$2, customer_place=$3, subtotal=$4, discount=$5, tax_rate=$6, tax_amount=$7, grand_total=$8, advance_id=$9, advance_amount=$10, balance_due=$11, date=$12, updated_by=$13, assigned_to=$14, payment_mode=$15, payment_mode_other=$16, is_edited=TRUE, payment_status=$17 WHERE id=$18 RETURNING *",
         [
           b.customer_name,
           b.customer_phone || null,
@@ -243,6 +247,7 @@ export async function PATCH(req: Request) {
           b.assigned_to || null,
           paymentMode,
           paymentModeOther,
+          paymentStatus,
           b.id
         ],
       );

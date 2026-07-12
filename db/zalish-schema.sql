@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS zalish_invoices (
 );
 ALTER TABLE zalish_invoices ADD COLUMN IF NOT EXISTS payment_mode TEXT NOT NULL DEFAULT 'UPI';
 ALTER TABLE zalish_invoices ADD COLUMN IF NOT EXISTS payment_mode_other TEXT;
+ALTER TABLE zalish_invoices ADD COLUMN IF NOT EXISTS payment_status TEXT NOT NULL DEFAULT 'PAID';
 DO $$ BEGIN
   ALTER TABLE zalish_advances ADD CONSTRAINT zalish_advances_settled_invoice_fk FOREIGN KEY (settled_invoice_id) REFERENCES zalish_invoices(id);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;

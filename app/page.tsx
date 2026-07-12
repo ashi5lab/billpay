@@ -420,7 +420,7 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
   const [tab, setTab] = useState("create");
   const [lines, setLines] = useState([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
   const [customer, setCustomer] = useState({ name: "", phone: "", place: "" });
-  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().slice(0, 10));
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toLocaleDateString("en-CA"));
   const [assignedTo, setAssignedTo] = useState("");
   const [discount, setDiscount] = useState<any>("");
   const [tax, setTax] = useState<any>("");
@@ -432,6 +432,7 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
   const [fId, setFId] = useState("");
   const [paymentMode, setPaymentMode] = useState("UPI");
   const [paymentModeOther, setPaymentModeOther] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("PAID");
 
   useEffect(() => {
     const t = setTimeout(() => query.trim() ? api(`/api/advances?q=${encodeURIComponent(query)}&excludeSettled=true`).then((res: any) => setAdvances(res.items || res)).catch(() => { }) : setAdvances([]), 350);
@@ -460,13 +461,13 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
     setSaving(true);
     try {
       const method = fId ? "PATCH" : "POST";
-      const payload = { id: fId, customer_name: customer.name, customer_phone: customer.phone, customer_place: customer.place, date: invoiceDate, assigned_to: assignedTo, items: lines, discount: discountAmount, tax_rate: amount(tax), advance_id: selected?.id, payment_mode: paymentMode, payment_mode_other: paymentMode === "Other" ? paymentModeOther : null };
+      const payload = { id: fId, customer_name: customer.name, customer_phone: customer.phone, customer_place: customer.place, date: invoiceDate, assigned_to: assignedTo, items: lines, discount: discountAmount, tax_rate: amount(tax), advance_id: selected?.id, payment_mode: paymentMode, payment_mode_other: paymentMode === "Other" ? paymentModeOther : null, payment_status: paymentStatus };
       const result = await api("/api/invoices", { method, body: JSON.stringify(payload) });
       setReceipt({ ...result, type: "invoice" });
       notify("Invoice created/updated successfully.");
       setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
       setCustomer({ name: "", phone: "", place: "" });
-      setInvoiceDate(new Date().toISOString().slice(0, 10));
+      setInvoiceDate(new Date().toLocaleDateString("en-CA"));
       setAssignedTo("");
       setDiscount("");
       setTax("");
@@ -498,12 +499,13 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
   const edit = (row: any) => {
     setFId(row.id);
     setCustomer({ name: row.customer_name, phone: row.customer_phone || "", place: row.customer_place || "" });
-    setInvoiceDate(row.date?.slice(0, 10) || new Date().toISOString().slice(0, 10));
+    setInvoiceDate(row.date?.slice(0, 10) || new Date().toLocaleDateString("en-CA"));
     setAssignedTo(row.assigned_to || "");
     setDiscount(row.discount || "");
     setTax(row.tax_rate || "");
     setPaymentMode(row.payment_mode || "UPI");
     setPaymentModeOther(row.payment_mode_other || "");
+    setPaymentStatus(row.payment_status || "PAID");
     if (row.items && row.items.length > 0) {
       setLines(row.items.map((i: any) => ({ item_id: i.item_id || "", item_name: i.item_name, quantity: Number(i.quantity), unit_price: Number(i.unit_price) })));
     } else {
@@ -532,7 +534,7 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
             setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
             setDiscount("");
             setTax("");
-            setTab("create"); setFId(""); setCustomer({ name: "", phone: "", place: "" }); setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]); setSelected(null); setQuery(""); setDiscount(""); setTax("");
+            setPaymentStatus("PAID");
           }}>Create Bill</button>
           <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
@@ -547,6 +549,7 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
             <Field label="Date" type="date" value={invoiceDate} onChange={(v: any) => setInvoiceDate(v)} />
             <AssignedToField value={assignedTo} staff={staff} onChange={setAssignedTo} />
             <PaymentModeField value={paymentMode} otherValue={paymentModeOther} onChange={setPaymentMode} onOtherChange={setPaymentModeOther} />
+            <PaymentStatusField value={paymentStatus} onChange={setPaymentStatus} />
           </div>
           <div className="card space-y-3">
             <div className="flex items-center justify-between">
@@ -596,14 +599,14 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
           {fId && <button type="button" onClick={() => setShowHistory(true)} className="button-secondary w-full">View Edit History</button>}
         </form>
       ) : (
-        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_receipt_number", label: "Advance Receipt", render: (r: any) => r.advance_receipt_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} onEdit={edit} />
+        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer", render: (r: any) => (<div className="flex items-center gap-2"><span>{r.customer_name}</span>{r.payment_status === "NOT PAID" && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-800 rounded">NOT PAID</span>}</div>) }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_receipt_number", label: "Advance Receipt", render: (r: any) => r.advance_receipt_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} onEdit={edit} />
       )}
     </div>
   );
 }
 function AdvanceForm({ notify, setReceipt, staff }: any) {
   const [tab, setTab] = useState("create");
-  const [f, setF] = useState<any>({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" });
+  const [f, setF] = useState<any>({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toLocaleDateString("en-CA"), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" });
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [saving, setSaving] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -621,12 +624,12 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
         notify("Advance receipt created.");
       }
       setReceipt({ ...r, type: "advance" });
-      setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" });
+      setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toLocaleDateString("en-CA"), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" });
       setReloadTrigger(x => x + 1);
       setTab("manage");
     } catch (e: any) { notify(e.message); } finally { setSaving(false); }
   };
-  const edit = (row: any) => { setF({ id: row.id, customer_name: row.customer_name, customer_phone: row.customer_phone || "", customer_place: row.customer_place || "", advance_amount: row.advance_amount, notes: row.notes || "", date: row.issued_at?.slice(0, 10) || row.date || new Date().toISOString().slice(0, 10), assigned_to: row.assigned_to || "", payment_mode: row.payment_mode || "UPI", payment_mode_other: row.payment_mode_other || "" }); setTab("create"); };
+  const edit = (row: any) => { setF({ id: row.id, customer_name: row.customer_name, customer_phone: row.customer_phone || "", customer_place: row.customer_place || "", advance_amount: row.advance_amount, notes: row.notes || "", date: row.issued_at?.slice(0, 10) || row.date || new Date().toLocaleDateString("en-CA"), assigned_to: row.assigned_to || "", payment_mode: row.payment_mode || "UPI", payment_mode_other: row.payment_mode_other || "" }); setTab("create"); };
   const remove = async (row: any) => { await api("/api/advances", { method: "DELETE", body: JSON.stringify({ id: row.id }) }); setReloadTrigger(x => x + 1); notify("Advance deleted."); };
 
   return (
@@ -634,7 +637,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Advance Receipts</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toISOString().slice(0, 10), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" }); }}>Create Advance</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", customer_name: "", customer_phone: "", customer_place: "", advance_amount: "", notes: "", date: new Date().toLocaleDateString("en-CA"), assigned_to: "", payment_mode: "UPI", payment_mode_other: "" }); }}>Create Advance</button>
           <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
@@ -710,7 +713,7 @@ function Inventory({ items, reload, notify }: any) {
 }
 function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) {
   const [tab, setTab] = useState("create");
-  const [f, setF] = useState<any>({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", assigned_to: "", payment_mode: "UPI" });
+  const [f, setF] = useState<any>({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toLocaleDateString("en-CA"), notes: "", assigned_to: "", payment_mode: "UPI" });
   const [cat, setCat] = useState("");
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -731,7 +734,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
         await api("/api/expenses", { method: "POST", body: JSON.stringify(f) });
         notify("Expense recorded.");
       }
-      setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", payment_mode: "UPI", payment_mode_other: "" });
+      setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toLocaleDateString("en-CA"), notes: "", payment_mode: "UPI", payment_mode_other: "" });
       setReloadTrigger(x => x + 1);
       setTab("manage");
     } catch (e: any) { notify(e.message); } finally { setSaving(false); }
@@ -792,7 +795,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Expenses</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toISOString().slice(0, 10), notes: "", assigned_to: "", payment_mode: "UPI", payment_mode_other: "" }); }}>Add Expense</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", expense_name: "", category_id: "", amount: "", expense_date: new Date().toLocaleDateString("en-CA"), notes: "", assigned_to: "", payment_mode: "UPI", payment_mode_other: "" }); }}>Add Expense</button>
           <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
@@ -832,8 +835,8 @@ function Reports({ config, notify }: any) {
   const [detailsPage, setDetailsPage] = useState(1);
   const [detailsPerPage, setDetailsPerPage] = useState(10);
   const [aggregationRange, setAggregationRange] = useState("current_month");
-  const [aggregationCustomStart, setAggregationCustomStart] = useState(new Date().toISOString().slice(0, 10));
-  const [aggregationCustomEnd, setAggregationCustomEnd] = useState(new Date().toISOString().slice(0, 10));
+  const [aggregationCustomStart, setAggregationCustomStart] = useState(new Date().toLocaleDateString("en-CA"));
+  const [aggregationCustomEnd, setAggregationCustomEnd] = useState(new Date().toLocaleDateString("en-CA"));
   const [aggregationSummary, setAggregationSummary] = useState<any>(null);
 
   useEffect(() => { api("/api/reports").then(setR).catch(() => { }); }, []);
@@ -1005,7 +1008,12 @@ function Reports({ config, notify }: any) {
                             <tr key={row.id || i} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewRecord(row.raw)}>
                               <td className="p-3">{row.date?.slice(0, 10)}</td>
                               <td className="p-3"><span className={`px-2 py-1 rounded text-xs font-bold ${row.type === "Credit" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>{row.type}</span></td>
-                              <td className="p-3">{row.description}</td>
+                              <td className="p-3">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span>{row.description}</span>
+                                  {row.raw?.payment_status === "NOT PAID" && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-800 rounded">NOT PAID</span>}
+                                </div>
+                              </td>
                               <td className={`p-3 text-right font-medium ${row.type === "Credit" ? "text-emerald-600" : "text-rose-600"}`}>{row.type === "Credit" ? "+" : "-"}{rupees(row.amount)}</td>
                             </tr>
                           ))}
@@ -1020,7 +1028,10 @@ function Reports({ config, notify }: any) {
                             <span className="font-semibold text-slate-500">{row.date?.slice(0, 10)}</span>
                             <span className={`px-2 py-1 rounded text-xs font-bold ${row.type === "Credit" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>{row.type}</span>
                           </div>
-                          <div className="text-sm">{row.description}</div>
+                          <div className="flex flex-col gap-1 items-start text-sm">
+                            <span>{row.description}</span>
+                            {row.raw?.payment_status === "NOT PAID" && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-800 rounded">NOT PAID</span>}
+                          </div>
                           <div className={`text-right font-bold ${row.type === "Credit" ? "text-emerald-600" : "text-rose-600"}`}>{row.type === "Credit" ? "+" : "-"}{rupees(row.amount)}</div>
                         </div>
                       ))}
@@ -1141,7 +1152,12 @@ function Reports({ config, notify }: any) {
                                 {row.date?.slice(0, 10)}
                                 {row.raw?.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
                               </td>
-                              <td className="p-3">{row.bill_number || "—"}</td>
+                              <td className="p-3">
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span>{row.bill_number || "—"}</span>
+                                  {row.raw?.payment_status === "NOT PAID" && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-800 rounded">NOT PAID</span>}
+                                </div>
+                              </td>
                               <td className="p-3">{row.receipt_number || "—"}</td>
                               <td className="p-3">{row.advance_receipt_number || "—"}</td>
                               <td className="p-3">{row.assigned_to || "—"}</td>
@@ -1162,6 +1178,12 @@ function Reports({ config, notify }: any) {
                               {row.raw?.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
                             </span>
                           </div>
+                          {row.raw?.payment_status === "NOT PAID" && (
+                            <div className="flex justify-between text-sm">
+                              <span className="font-semibold text-slate-500">Status:</span>
+                              <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-800 rounded">NOT PAID</span>
+                            </div>
+                          )}
                           {row.bill_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Bill #:</span><span>{row.bill_number}</span></div>}
                           {row.receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Receipt #:</span><span>{row.receipt_number}</span></div>}
                           {row.advance_receipt_number && <div className="flex justify-between text-sm"><span className="font-semibold text-slate-500">Advance Receipt #:</span><span>{row.advance_receipt_number}</span></div>}
@@ -1336,6 +1358,7 @@ function Logs() {
   );
 }
 function PrintableReceipt({ data, config, close }: any) {
+  const [generating, setGenerating] = useState(false);
   const phone = String(data.customer_phone || "").replace(/\D/g, "");
 
   const isExpense = data.type === "expense";
@@ -1343,6 +1366,7 @@ function PrintableReceipt({ data, config, close }: any) {
   const isInvoice = data.type === "invoice" || (!isExpense && !isAdvance);
 
   const title = isExpense ? "EXPENSE VOUCHER" : isAdvance ? "ADVANCE RECEIPT" : "INVOICE";
+  const isPaid = !isInvoice || (data.payment_status !== "NOT PAID");
 
   const recordId = isExpense
     ? (data.id ? `EXP-${data.id.split('-')[0].toUpperCase()}` : "RECORD")
@@ -1355,6 +1379,37 @@ function PrintableReceipt({ data, config, close }: any) {
       ? `Expense Record: ${data.expense_name} - ${rupees(amountText)}`
       : `Thank you for shopping with ${config?.store_name || 'us'}. ${title} ${recordId}: ${rupees(amountText)}`
   );
+
+  const handleWhatsApp = async () => {
+    setGenerating(true);
+    const receiptEl = document.getElementById("receipt");
+    if (receiptEl) {
+      try {
+        const html2canvas = (await import("html2canvas")).default;
+        const { jsPDF } = await import("jspdf");
+        
+        const closeBtn = receiptEl.querySelector('button[aria-label="Close"]') as HTMLElement;
+        if (closeBtn) closeBtn.style.display = 'none';
+        
+        const canvas = await html2canvas(receiptEl, { scale: 2 });
+        
+        if (closeBtn) closeBtn.style.display = '';
+        
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        
+        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+        pdf.save(`Zalish_${title}_${recordId}.pdf`);
+      } catch (e) {
+        console.error("PDF generation failed", e);
+      }
+    }
+    setGenerating(false);
+    window.open(`https://wa.me/91${phone}?text=${text}`, "_blank");
+  };
 
   return (
     <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/50 p-4">
@@ -1374,7 +1429,12 @@ function PrintableReceipt({ data, config, close }: any) {
             <hr className="my-4" />
             <p className="font-semibold">{title}</p>
             <p className="text-sm">#{recordId}</p>
-            <p className="text-sm text-slate-500">
+            {isInvoice && (
+              <div className={`mx-auto mt-2 w-max rounded px-2 py-1 text-xs font-bold ${isPaid ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                {isPaid ? "PAID" : "NOT PAID"}
+              </div>
+            )}
+            <p className="text-sm text-slate-500 mt-1">
               {data.date?.slice(0, 10) || data.created_at?.slice(0, 10) || data.expense_date?.slice(0, 10)}
             </p>
           </div>
@@ -1436,14 +1496,16 @@ function PrintableReceipt({ data, config, close }: any) {
               <span>{isExpense ? "Amount" : isAdvance ? "Advance paid" : "Total"}</span>
               <span>{rupees(amountText)}</span>
             </p>
-            {isInvoice && Number(data.advance_amount) > 0 && (
+            {isInvoice && (Number(data.advance_amount) > 0 || !isPaid) && (
               <>
-                <p className="flex justify-between">
-                  <span>Advance adjusted</span>
-                  <span>−{rupees(data.advance_amount)}</span>
-                </p>
+                {Number(data.advance_amount) > 0 && (
+                  <p className="flex justify-between">
+                    <span>Advance adjusted</span>
+                    <span>−{rupees(data.advance_amount)}</span>
+                  </p>
+                )}
                 <p className="flex justify-between font-bold">
-                  <span>Balance due</span>
+                  <span>{isPaid ? "Total" : "Balance due"}</span>
                   <span>{rupees(data.balance_due)}</span>
                 </p>
               </>
@@ -1468,13 +1530,13 @@ function PrintableReceipt({ data, config, close }: any) {
             Share
           </button>
           {phone ? (
-            <a
-              className="button"
-              href={`https://wa.me/91${phone}?text=${text}`}
-              target="_blank"
+            <button
+              className="button flex items-center justify-center gap-1"
+              onClick={handleWhatsApp}
+              disabled={generating}
             >
-              WhatsApp
-            </a>
+              {generating ? <Spinner /> : "WhatsApp"}
+            </button>
           ) : (
             <button disabled className="button">
               WhatsApp
@@ -1555,6 +1617,18 @@ function AssignedToField({ value, staff, onChange }: any) {
         <Field label="Specify name" value={isOther ? value : ""} onChange={onChange} />
       )}
     </>
+  );
+}
+
+function PaymentStatusField({ value, onChange }: any) {
+  return (
+    <label>
+      <span className="label">Payment Status</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full">
+        <option value="PAID">Paid</option>
+        <option value="NOT PAID">Not Paid</option>
+      </select>
+    </label>
   );
 }
 

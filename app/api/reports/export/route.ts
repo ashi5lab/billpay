@@ -89,7 +89,7 @@ export async function GET(req: Request) {
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="Billing_Report_${new Date().toISOString().slice(0, 10)}.xlsx"`,
+        'Content-Disposition': `attachment; filename="Billing_Report_${new Date().toLocaleDateString("en-CA")}.xlsx"`,
       }
     });
   } catch (e) {

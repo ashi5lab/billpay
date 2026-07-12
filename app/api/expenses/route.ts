@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     if (!Number.isFinite(amount) || amount <= 0)
       throw new Error("Expense amount must be greater than zero");
     const user = await getCurrentUser() || "system";
-    const date = b.date || b.expense_date || new Date().toISOString().slice(0, 10);
+    const date = b.date || b.expense_date || new Date().toLocaleDateString("en-CA");
     const paymentMode = b.payment_mode || "UPI";
     const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const row = await transaction(async (c) => {
@@ -104,7 +104,7 @@ export async function PATCH(req: Request) {
     if (!b.id) throw new Error("Expense ID is required");
 
     const user = await getCurrentUser() || "system";
-    const date = b.date || b.expense_date || new Date().toISOString().slice(0, 10);
+    const date = b.date || b.expense_date || new Date().toLocaleDateString("en-CA");
     const paymentMode = b.payment_mode || "UPI";
     const paymentModeOther = paymentMode === "Other" ? b.payment_mode_other : null;
     const row = await transaction(async (c) => {
