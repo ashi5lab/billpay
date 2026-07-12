@@ -222,15 +222,16 @@ export default function App() {
         </button>
       </nav>
       {receipt && (
-        <ReceiptView
+        <PrintableReceipt
           data={receipt}
           config={config}
           close={() => setReceipt(null)}
         />
       )}
       {expenseRecord && (
-        <ExpenseView
+        <PrintableReceipt
           data={expenseRecord}
+          config={config}
           close={() => setExpenseRecord(null)}
         />
       )}{" "}
@@ -459,7 +460,7 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
       setLines([{ item_name: "", quantity: 1, unit_price: 0, item_id: "" }]);
     }
     if (row.advance_id) {
-      setSelected({ id: row.advance_id, receipt_number: row.advance_receipt_number, advance_amount: row.advance_amount });
+      setSelected({ id: row.advance_id, receipt_number: row.advance_receipt_number, customer_name: row.customer_name, advance_amount: row.advance_amount });
     } else {
       setSelected(null);
       setQuery("");
@@ -597,7 +598,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
             <Field label="Place" value={f.customer_place} onChange={(v: any) => setF({ ...f, customer_place: v })} />
             <Field label="Date" type="date" value={f.date} onChange={(v: any) => setF({ ...f, date: v })} />
             <AssignedToField value={f.assigned_to} staff={staff} onChange={(v: any) => setF({ ...f, assigned_to: v })} />
-            <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v:any)=>setF({...f, payment_mode: v})} onOtherChange={(v:any)=>setF({...f, payment_mode_other: v})} />
+            <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v: any) => setF({ ...f, payment_mode: v })} onOtherChange={(v: any) => setF({ ...f, payment_mode_other: v })} />
           </div>
           <Field label="Notes" value={f.notes} onChange={(v: any) => setF({ ...f, notes: v })} />
           <button disabled={saving} className="button w-full">{saving ? <><Spinner /> Saving…</> : (f.id ? "Update advance" : "Create advance receipt")}</button>
@@ -754,7 +755,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
             <Field label="Amount (₹)" type="number" value={f.amount} onChange={(v: any) => setF({ ...f, amount: v })} />
             <Field label="Date" type="date" value={f.expense_date} onChange={(v: any) => setF({ ...f, expense_date: v })} />
             <AssignedToField value={f.assigned_to} staff={staff} onChange={(v: any) => setF({ ...f, assigned_to: v })} />
-            <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v:any)=>setF({...f, payment_mode: v})} onOtherChange={(v:any)=>setF({...f, payment_mode_other: v})} />
+            <PaymentModeField value={f.payment_mode} otherValue={f.payment_mode_other} onChange={(v: any) => setF({ ...f, payment_mode: v })} onOtherChange={(v: any) => setF({ ...f, payment_mode_other: v })} />
             <button disabled={saving} className="button sm:col-span-2">{saving ? <><Spinner /> Saving…</> : (f.id ? "Update expense" : "Save expense")}</button>
             {f.id && <button type="button" onClick={() => setShowHistory(true)} className="button-secondary sm:col-span-2">View Edit History</button>}
           </form>
@@ -785,7 +786,7 @@ function Reports({ config, notify }: any) {
   const [aggregationCustomEnd, setAggregationCustomEnd] = useState(new Date().toISOString().slice(0, 10));
   const [aggregationSummary, setAggregationSummary] = useState<any>(null);
 
-  useEffect(() => { api("/api/reports").then(setR).catch(() => {}); }, []);
+  useEffect(() => { api("/api/reports").then(setR).catch(() => { }); }, []);
 
   const cards = [
     { key: "inflow", label: "Cash inflow", value: r?.summary?.income, color: "text-emerald-600", desc: "Money collected from invoices and advances" },
@@ -801,13 +802,13 @@ function Reports({ config, notify }: any) {
     setActiveCard(key);
     if (key === "sales") {
       if (aggregationRange === "custom" && (!aggregationCustomStart || !aggregationCustomEnd)) {
-         return;
+        return;
       }
       setLoadingDetails(true);
       try {
         let url = `/api/reports/aggregation?range=${aggregationRange}`;
         if (aggregationRange === "custom") {
-           url += `&start=${aggregationCustomStart}&end=${aggregationCustomEnd}`;
+          url += `&start=${aggregationCustomStart}&end=${aggregationCustomEnd}`;
         }
         const res = await api(url);
         setDetails(res.items || []);
@@ -868,13 +869,13 @@ function Reports({ config, notify }: any) {
       {!activeCard ? (
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
           {!r ? (
-             [...Array(7)].map((_, i) => (
-               <div className="card" key={i}>
-                 <div className="h-5 bg-slate-200 rounded animate-pulse w-32 mb-3"></div>
-                 <div className="h-8 bg-slate-100 rounded animate-pulse w-24 mb-3"></div>
-                 <div className="h-3 bg-slate-100 rounded animate-pulse w-full max-w-[200px]"></div>
-               </div>
-             ))
+            [...Array(7)].map((_, i) => (
+              <div className="card" key={i}>
+                <div className="h-5 bg-slate-200 rounded animate-pulse w-32 mb-3"></div>
+                <div className="h-8 bg-slate-100 rounded animate-pulse w-24 mb-3"></div>
+                <div className="h-3 bg-slate-100 rounded animate-pulse w-full max-w-[200px]"></div>
+              </div>
+            ))
           ) : (
             cards.map(c => (
               <button type="button" key={c.key} className="card text-left hover:shadow-md transition-shadow" onClick={() => openCard(c.key)}>
@@ -1004,16 +1005,16 @@ function Reports({ config, notify }: any) {
           <h3 className="font-semibold text-lg">{cards.find(c => c.key === activeCard)?.label}</h3>
           <div className="flex gap-2 border-b pb-2 overflow-x-auto">
             {["All", "UPI", "Cash", "Card"].map(m => (
-              <button 
-                key={m} 
-                onClick={() => setPaymentModeFilter(m)} 
+              <button
+                key={m}
+                onClick={() => setPaymentModeFilter(m)}
                 className={`px-4 py-1.5 text-sm rounded-full whitespace-nowrap transition-colors ${paymentModeFilter === m ? "bg-brand-600 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700"}`}
               >
                 {m === "All" ? "All transactions" : m}
               </button>
             ))}
           </div>
-          <DataTable 
+          <DataTable
             endpoint={`/api/reports/${activeCard}?mode=${paymentModeFilter}`}
             onRowClick={(r: any) => setViewRecord(r.raw)}
             columns={[
@@ -1145,8 +1146,7 @@ function Reports({ config, notify }: any) {
           )}
         </div>
       )}
-      {viewRecord && viewRecord.type === "expense" && <ExpenseView data={viewRecord} close={() => setViewRecord(null)} />}
-      {viewRecord && viewRecord.type !== "expense" && <ReceiptView data={viewRecord} config={config} close={() => setViewRecord(null)} />}
+      {viewRecord && <PrintableReceipt data={viewRecord} config={config} close={() => setViewRecord(null)} />}
     </div>
   );
 }
@@ -1271,83 +1271,69 @@ function Logs() {
     </div>
   );
 }
-function ExpenseView({ data, close }: any) {
-  return (
-    <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/50 p-4">
-      <div className="mx-auto max-w-md">
-        <div id="receipt" className="rounded-2xl bg-white p-6 shadow-2xl">
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-brand-700">Expense Record</h2>
-            <hr className="my-4" />
-            <p className="font-semibold">{data.expense_name}</p>
-            <p className="text-sm">{data.expense_date?.slice(0, 10)}</p>
-          </div>
-          <div className="mt-4 text-sm">
-            <p><b>Category:</b> {data.category_name || "Uncategorised"}</p>
-            <p><b>Payment mode:</b> {data.payment_mode === "Other" ? (data.payment_mode_other || "Other") : data.payment_mode}</p>
-            {data.notes && <p><b>Notes:</b> {data.notes}</p>}
-          </div>
-          <div className="mt-4 space-y-1 text-sm border-t pt-2">
-            <p className="flex justify-between text-lg font-bold">
-              <span>Amount</span>
-              <span>{rupees(data.amount)}</span>
-            </p>
-          </div>
-        </div>
-        <div className="print:hidden mt-4 rounded-xl bg-slate-800 p-4 text-xs text-slate-300">
-          <p>Created by: {data.created_by || "Unknown"} on {data.created_at?.slice(0, 10)}</p>
-          {data.updated_by && <p>Updated by: {data.updated_by}</p>}
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button className="button-secondary" onClick={() => window.print()}>Print</button>
-          <button onClick={close} className="w-full text-sm text-white">Close</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-function ReceiptView({ data, config, close }: any) {
+function PrintableReceipt({ data, config, close }: any) {
   const phone = String(data.customer_phone || "").replace(/\D/g, "");
+
+  const isExpense = data.type === "expense";
+  const isAdvance = data.type === "advance";
+  const isInvoice = data.type === "invoice" || (!isExpense && !isAdvance);
+
+  const title = isExpense ? "EXPENSE VOUCHER" : isAdvance ? "ADVANCE RECEIPT" : "INVOICE";
+
+  const recordId = isExpense
+    ? (data.id ? `EXP-${data.id.split('-')[0].toUpperCase()}` : "RECORD")
+    : (data.receipt_number || data.invoice_number);
+
+  const amountText = isExpense ? data.amount : isAdvance ? data.advance_amount : data.grand_total;
+
   const text = encodeURIComponent(
-    `Thank you for shopping with ${config.store_name}. ${data.type === "advance" ? "Advance receipt" : "Invoice"} ${data.receipt_number || data.invoice_number}: ${rupees(data.advance_amount || data.grand_total)}`,
+    isExpense
+      ? `Expense Record: ${data.expense_name} - ${rupees(amountText)}`
+      : `Thank you for shopping with ${config?.store_name || 'us'}. ${title} ${recordId}: ${rupees(amountText)}`
   );
+
   return (
     <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/50 p-4">
       <div className="mx-auto max-w-md">
         <div id="receipt" className="rounded-2xl bg-white p-6 shadow-2xl">
           <div className="text-center">
             <h2 className="text-xl font-bold text-brand-700">
-              {config.store_name}
+              {config?.store_name || "Record"}
             </h2>
-            <p className="text-sm text-slate-500">{config.address}</p>
-            <p className="text-sm text-slate-500">{config.contact_number}</p>
+            {config?.address && <p className="text-sm text-slate-500">{config.address}</p>}
+            {config?.contact_number && <p className="text-sm text-slate-500">{config.contact_number}</p>}
             <hr className="my-4" />
-            <p className="font-semibold">
-              {data.type === "advance" ? "ADVANCE RECEIPT" : "INVOICE"}
-            </p>
-            <p className="text-sm">
-              #{data.receipt_number || data.invoice_number}
+            <p className="font-semibold">{title}</p>
+            <p className="text-sm">#{recordId}</p>
+            <p className="text-sm text-slate-500">
+              {data.date?.slice(0, 10) || data.created_at?.slice(0, 10) || data.expense_date?.slice(0, 10)}
             </p>
           </div>
-          <div className="mt-4 text-sm">
+
+          <div className="mt-4 text-sm space-y-1">
+            {isExpense ? (
+              <>
+                <p><b>Expense:</b> {data.expense_name}</p>
+                <p><b>Category:</b> {data.category_name || "Uncategorised"}</p>
+                {data.notes && <p><b>Notes:</b> {data.notes}</p>}
+              </>
+            ) : (
+              <>
+                <p><b>Customer:</b> {data.customer_name}</p>
+                {data.customer_phone && <p><b>Phone:</b> {data.customer_phone}</p>}
+                {data.customer_place && <p><b>Place:</b> {data.customer_place}</p>}
+              </>
+            )}
+
             <p>
-              <b>Customer:</b> {data.customer_name}
+              <b>Payment mode:</b> {data.payment_mode === "Other" ? (data.payment_mode_other || "Other") : (data.payment_mode || "N/A")}
             </p>
             <p>
-              <b>Payment mode:</b> {data.payment_mode === "Other" ? (data.payment_mode_other || "Other") : data.payment_mode}
+              <b>Billed by:</b> {data.assigned_to || "—"}
             </p>
-            {data.customer_phone && (
-              <p>
-                <b>Phone:</b> {data.customer_phone}
-              </p>
-            )}
-            {data.customer_place && (
-              <p>
-                <b>Place:</b> {data.customer_place}
-              </p>
-            )}
           </div>
-          {data.items && (
+
+          {!isExpense && data.items && (
             <div className="mt-4 border-y py-2 text-sm">
               {data.items.map((i: any, n: number) => (
                 <div className="flex justify-between" key={n}>
@@ -1359,8 +1345,9 @@ function ReceiptView({ data, config, close }: any) {
               ))}
             </div>
           )}
-          <div className="mt-4 space-y-1 text-sm">
-            {data.type === "invoice" && (
+
+          <div className="mt-4 space-y-1 text-sm border-t pt-2">
+            {isInvoice && (
               <>
                 <p className="flex justify-between">
                   <span>Subtotal</span>
@@ -1377,10 +1364,10 @@ function ReceiptView({ data, config, close }: any) {
               </>
             )}
             <p className="flex justify-between text-lg font-bold">
-              <span>{data.type === "advance" ? "Advance paid" : "Total"}</span>
-              <span>{rupees(data.type === "advance" ? data.advance_amount : data.grand_total)}</span>
+              <span>{isExpense ? "Amount" : isAdvance ? "Advance paid" : "Total"}</span>
+              <span>{rupees(amountText)}</span>
             </p>
-            {data.type === "invoice" && Number(data.advance_amount) > 0 && (
+            {isInvoice && Number(data.advance_amount) > 0 && (
               <>
                 <p className="flex justify-between">
                   <span>Advance adjusted</span>
@@ -1394,7 +1381,7 @@ function ReceiptView({ data, config, close }: any) {
             )}
           </div>
           <p className="mt-6 text-center text-xs text-slate-400">
-            Thank you for choosing us!
+            {isExpense ? "Internal Record" : "Thank you for choosing us!"}
           </p>
         </div>
         <div className="print:hidden mt-4 rounded-xl bg-slate-800 p-4 text-xs text-slate-300">
@@ -1403,11 +1390,11 @@ function ReceiptView({ data, config, close }: any) {
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2">
           <button className="button-secondary" onClick={() => window.print()}>
-            Save PDF
+            {isExpense ? "Print" : "Save PDF"}
           </button>
           <button
             className="button-secondary"
-            onClick={() => navigator.share?.({ title: "Zalish receipt", text })}
+            onClick={() => navigator.share?.({ title: "Zalish record", text })}
           >
             Share
           </button>
@@ -1756,17 +1743,17 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
                 <span>records</span>
               </div>
               <div className="flex items-center gap-4">
-                <button 
+                <button
                   type="button"
-                  className="button-secondary text-sm disabled:opacity-50" 
-                  disabled={page === 1} 
+                  className="button-secondary text-sm disabled:opacity-50"
+                  disabled={page === 1}
                   onClick={() => setPage(p => p - 1)}
                 >Previous</button>
                 <span className="text-sm font-medium text-slate-600">Page {page} of {totalPages}</span>
-                <button 
+                <button
                   type="button"
-                  className="button-secondary text-sm disabled:opacity-50" 
-                  disabled={page === totalPages} 
+                  className="button-secondary text-sm disabled:opacity-50"
+                  disabled={page === totalPages}
                   onClick={() => setPage(p => p + 1)}
                 >Next</button>
               </div>

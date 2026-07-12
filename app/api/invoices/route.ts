@@ -273,7 +273,7 @@ export async function PATCH(req: Request) {
     });
     return NextResponse.json(result);
   } catch (e) {
-    return error(e);
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }
 
