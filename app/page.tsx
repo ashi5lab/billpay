@@ -17,12 +17,54 @@ type Advance = {
 };
 type Receipt = any;
 const api = async (url: string, options?: RequestInit) => {
+  const method = options?.method || "GET";
+  
+  if (method !== "GET" && typeof window !== "undefined") {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith("zalish_cache_")) localStorage.removeItem(k);
+    });
+  }
+
+  const cacheKey = `zalish_cache_${url}`;
+  
+  if (method === "GET" && typeof window !== "undefined") {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      fetch(url, { headers: { "Content-Type": "application/json" }, ...options })
+        .then(async r => {
+          if (r.ok) {
+            const b = await r.json().catch(() => null);
+            if (b) {
+               const fresh = JSON.stringify(b);
+               if (fresh !== cached) {
+                  localStorage.setItem(cacheKey, fresh);
+                  window.dispatchEvent(new CustomEvent("zalish_cache_updated"));
+               }
+            }
+          }
+        }).catch(() => {});
+      try { return JSON.parse(cached); } catch {}
+    }
+  }
+
   const r = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
   const b = await r.json().catch(() => null);
   if (!r.ok) throw new Error(b?.error || "Something went wrong");
+  
+  if (method === "GET" && b && typeof window !== "undefined") {
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(b));
+    } catch {
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith("zalish_cache_")) localStorage.removeItem(k);
+      });
+      try { localStorage.setItem(cacheKey, JSON.stringify(b)); } catch {}
+    }
+  }
+  
   return b;
 };
 const amount = (value: unknown) => {
@@ -85,6 +127,14 @@ export default function App() {
       })
       .catch(() => setAuthenticated(false));
   }, []);
+  useEffect(() => {
+    const handleCacheUpdate = () => {
+      load();
+    };
+    window.addEventListener("zalish_cache_updated", handleCacheUpdate);
+    return () => window.removeEventListener("zalish_cache_updated", handleCacheUpdate);
+  }, []);
+
   if (authenticated === null)
     return (
       <div className="grid min-h-screen place-items-center text-brand-700">
@@ -1193,7 +1243,21 @@ function Config({ config, setConfig, notify }: any) {
           onChange={(v: any) => setConfig({ ...config, gstin: v })}
         />
       </div>
-      <button disabled={saving} className="button">{saving ? <><Spinner /> Saving…</> : "Save configuration"}</button>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <button disabled={saving} className="button">{saving ? <><Spinner /> Saving…</> : "Save configuration"}</button>
+        <button 
+          type="button" 
+          className="button-secondary text-red-600 border-red-200 hover:bg-red-50" 
+          onClick={() => {
+            Object.keys(localStorage).forEach(k => {
+              if (k.startsWith("zalish_cache_")) localStorage.removeItem(k);
+            });
+            notify("All local caches purged successfully.");
+          }}
+        >
+          Purge all cache
+        </button>
+      </div>
     </form>
   );
 }
