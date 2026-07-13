@@ -599,7 +599,7 @@ function Billing({ items, config, notify, setReceipt, staff }: any) {
           {fId && <button type="button" onClick={() => setShowHistory(true)} className="button-secondary w-full">View Edit History</button>}
         </form>
       ) : (
-        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer", render: (r: any) => (<div className="flex items-center gap-2"><span>{r.customer_name}</span>{r.payment_status === "NOT PAID" && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-800 rounded">NOT PAID</span>}</div>) }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_receipt_number", label: "Advance Receipt", render: (r: any) => r.advance_receipt_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} onEdit={edit} />
+        <DataTable endpoint="/api/invoices" reloadTrigger={reloadTrigger} columns={[{ key: "invoice_number", label: "Inv #" }, { key: "created_at", label: "Date", render: (r: any) => r.created_at?.slice(0, 10) }, { key: "customer_name", label: "Customer", render: (r: any) => (<div className="flex items-center gap-2"><span>{r.customer_name}</span>{r.payment_status === "NOT PAID" && <span className="px-1.5 py-0.5 text-[10px] font-bold bg-rose-100 text-rose-800 rounded">NOT PAID</span>}</div>) }, { key: "assigned_to", label: "Assigned To" }, { key: "advance_receipt_number", label: "Advance Receipt", render: (r: any) => r.advance_receipt_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "grand_total", label: "Total", render: (r: any) => rupees(r.grand_total) }]} onRowClick={viewReceipt} onDelete={remove} onEdit={edit} onHistoryClick={(id: string) => { setFId(id); setShowHistory(true); }} />
       )}
     </div>
   );
@@ -658,7 +658,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
           {f.id && <button type="button" onClick={() => setShowHistory(true)} className="button-secondary w-full">View Edit History</button>}
         </form>
       ) : (
-        <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{ key: "receipt_number", label: "Receipt #" }, { key: "issued_at", label: "Date", render: (r: any) => r.issued_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "attached_invoice_number", label: "Attached Bill", render: (r: any) => r.attached_invoice_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "advance_amount", label: "Amount", render: (r: any) => rupees(r.advance_amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} />
+        <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{ key: "receipt_number", label: "Receipt #" }, { key: "issued_at", label: "Date", render: (r: any) => r.issued_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "attached_invoice_number", label: "Attached Bill", render: (r: any) => r.attached_invoice_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "advance_amount", label: "Amount", render: (r: any) => rupees(r.advance_amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} onHistoryClick={(id: string) => { setF({id} as any); setShowHistory(true); }} />
       )}
     </div>
   );
@@ -819,7 +819,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
           </div>
         </div>
       ) : (
-        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{ key: "expense_date", label: "Date", render: (r: any) => r.expense_date?.slice(0, 10) }, { key: "expense_name", label: "Name" }, { key: "category_name", label: "Category" }, { key: "assigned_to", label: "Assigned To" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "amount", label: "Amount", render: (r: any) => rupees(r.amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setExpenseRecord(r)} />
+        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{ key: "expense_date", label: "Date", render: (r: any) => r.expense_date?.slice(0, 10) }, { key: "expense_name", label: "Name" }, { key: "category_name", label: "Category" }, { key: "assigned_to", label: "Assigned To" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "amount", label: "Amount", render: (r: any) => rupees(r.amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setExpenseRecord(r)} onHistoryClick={(id: string) => { setF({id} as any); setShowHistory(true); }} />
       )}
     </div>
   );
@@ -834,6 +834,7 @@ function Reports({ config, notify }: any) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [detailsPage, setDetailsPage] = useState(1);
   const [detailsPerPage, setDetailsPerPage] = useState(10);
+  const [historyRecord, setHistoryRecord] = useState<{id: string, table: string} | null>(null);
   const [aggregationRange, setAggregationRange] = useState("current_month");
   const [aggregationCustomStart, setAggregationCustomStart] = useState(new Date().toLocaleDateString("en-CA"));
   const [aggregationCustomEnd, setAggregationCustomEnd] = useState(new Date().toLocaleDateString("en-CA"));
@@ -1092,6 +1093,7 @@ function Reports({ config, notify }: any) {
       ) : (
         <div className="space-y-3">
           <h3 className="font-semibold text-lg">{cards.find(c => c.key === activeCard)?.label}</h3>
+          {historyRecord && <EditHistoryModal recordId={historyRecord.id} tableName={historyRecord.table} onClose={() => setHistoryRecord(null)} />}
           {loadingDetails ? (
             <>
               <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -1150,7 +1152,7 @@ function Reports({ config, notify }: any) {
                             <tr key={row.id || i} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewRecord(row.raw)}>
                               <td className="p-3">
                                 {row.date?.slice(0, 10)}
-                                {row.raw?.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
+                                {row.raw?.is_edited && <span onClick={(e) => { e.stopPropagation(); setHistoryRecord({ id: row.raw.id, table: row.type === 'expense' ? 'zalish_expenses' : (row.raw.advance_amount ? 'zalish_advances' : 'zalish_invoices') }); }} className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded cursor-pointer hover:bg-amber-200">EDITED</span>}
                               </td>
                               <td className="p-3">
                                 <div className="flex flex-col gap-1 items-start">
@@ -1175,7 +1177,7 @@ function Reports({ config, notify }: any) {
                             <span className="font-semibold text-slate-500">Date:</span>
                             <span>
                               {row.date?.slice(0, 10)}
-                              {row.raw?.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
+                              {row.raw?.is_edited && <span onClick={(e) => { e.stopPropagation(); setHistoryRecord({ id: row.raw.id, table: row.type === 'expense' ? 'zalish_expenses' : (row.raw.advance_amount ? 'zalish_advances' : 'zalish_invoices') }); }} className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded cursor-pointer hover:bg-amber-200">EDITED</span>}
                             </span>
                           </div>
                           {row.raw?.payment_status === "NOT PAID" && (
@@ -1687,19 +1689,51 @@ function EditHistoryModal({ recordId, tableName, onClose }: any) {
                 </div>
                 <span className="px-2 py-0.5 text-xs font-bold bg-slate-200 text-slate-700 rounded uppercase">{log.action}</span>
               </div>
-              {log.details?.old && log.details?.new ? (
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="p-2 bg-rose-50 rounded border border-rose-100 overflow-x-auto text-xs">
-                    <p className="font-bold text-rose-800 mb-1">Old</p>
-                    <pre>{JSON.stringify(log.details.old, null, 2)}</pre>
+              {log.details?.old && log.details?.new ? (() => {
+                const diffs = [];
+                const keys = new Set([...Object.keys(log.details.old || {}), ...Object.keys(log.details.new || {})]);
+                for (const k of Array.from(keys)) {
+                  if (['id', 'updated_at', 'created_at', 'deleted_at', 'subtotal', 'is_edited', 'updated_by', 'balance_due', 'grand_total', 'tax_total'].includes(k)) continue;
+                  let oldV = log.details.old[k];
+                  let newV = log.details.new[k];
+                  
+                  if (k === 'items' && Array.isArray(oldV) && Array.isArray(newV)) {
+                     const formatItems = (arr: any[]) => arr.map(i => `${Number(i.quantity)} x ${i.item_name} @ ${Number(i.unit_price)}`).join('\n');
+                     oldV = formatItems(oldV);
+                     newV = formatItems(newV);
+                  }
+                  
+                  if (typeof oldV !== 'object' && typeof newV !== 'object' && oldV == newV) continue;
+                  
+                  if (JSON.stringify(oldV) !== JSON.stringify(newV)) {
+                    diffs.push({ key: k, oldV, newV });
+                  }
+                }
+                
+                return (
+                  <div className="space-y-2 mt-2">
+                    {diffs.length === 0 && <p className="text-sm text-slate-500 italic">No fields were changed.</p>}
+                    {diffs.map((diff, i) => (
+                      <div key={i} className="text-sm bg-white border border-slate-200 rounded-lg p-3 shadow-sm">
+                        <p className="font-semibold text-slate-700 mb-2 capitalize">{diff.key.replace(/_/g, ' ')} changed</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-rose-50 p-2 rounded text-rose-800">
+                            <p className="text-[10px] uppercase font-bold text-rose-400 mb-1">From</p>
+                            <div className="text-xs break-words whitespace-pre-wrap">{typeof diff.oldV === 'object' ? JSON.stringify(diff.oldV, null, 2) : String(diff.oldV || 'None')}</div>
+                          </div>
+                          <div className="bg-emerald-50 p-2 rounded text-emerald-800">
+                            <p className="text-[10px] uppercase font-bold text-emerald-500 mb-1">To</p>
+                            <div className="text-xs break-words whitespace-pre-wrap">{typeof diff.newV === 'object' ? JSON.stringify(diff.newV, null, 2) : String(diff.newV || 'None')}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="p-2 bg-emerald-50 rounded border border-emerald-100 overflow-x-auto text-xs">
-                    <p className="font-bold text-emerald-800 mb-1">New</p>
-                    <pre>{JSON.stringify(log.details.new, null, 2)}</pre>
-                  </div>
-                </div>
+                );
+              })() : log.action === 'INSERT' ? (
+                <p className="text-sm text-slate-600 mt-2 italic">Record created by {log.username}.</p>
               ) : (
-                <div className="p-2 bg-white rounded border border-slate-100 overflow-x-auto text-xs">
+                <div className="p-2 bg-white rounded border border-slate-100 overflow-x-auto text-xs mt-2">
                   <pre>{JSON.stringify(log.details, null, 2)}</pre>
                 </div>
               )}
@@ -1723,7 +1757,7 @@ function ConfirmModal({ title, message, onConfirm, onCancel }: any) {
   );
 }
 
-function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, reloadTrigger = 0, onRowClick }: any) {
+function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, reloadTrigger = 0, onRowClick, onHistoryClick }: any) {
   const [data, setData] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -1834,7 +1868,7 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
                     {columns.map((c: any, colIdx: number) => (
                       <td key={c.key} className="p-3">
                         {c.render ? c.render(row) : row[c.key]}
-                        {colIdx === 0 && row.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
+                        {colIdx === 0 && row.is_edited && <span onClick={onHistoryClick ? (e) => { e.stopPropagation(); onHistoryClick(row.id); } : undefined} className={`ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded ${onHistoryClick ? 'cursor-pointer hover:bg-amber-200' : ''}`}>EDITED</span>}
                       </td>
                     ))}
                     <td className="p-3 flex gap-3">
@@ -1856,7 +1890,7 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
                     <span className="font-semibold text-slate-500">{c.label}:</span>
                     <span className="text-right ml-2 font-medium text-slate-900">
                       {c.render ? c.render(row) : row[c.key]}
-                      {colIdx === 0 && row.is_edited && <span className="ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded">EDITED</span>}
+                      {colIdx === 0 && row.is_edited && <span onClick={onHistoryClick ? (e) => { e.stopPropagation(); onHistoryClick(row.id); } : undefined} className={`ml-2 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded ${onHistoryClick ? 'cursor-pointer hover:bg-amber-200' : ''}`}>EDITED</span>}
                     </span>
                   </div>
                 ))}
