@@ -843,10 +843,10 @@ function Reports({ config, notify }: any) {
   useEffect(() => { api("/api/reports").then(setR).catch(() => { }); }, []);
 
   const cards = [
+    { key: "sales", label: "Account aggregation", value: r?.summary?.sales, color: "text-brand-700", desc: "Total invoice item sales" },
     { key: "inflow", label: "Cash inflow", value: r?.summary?.income, color: "text-emerald-600", desc: "Money collected from invoices and advances" },
     { key: "outflow", label: "Cash outflow", value: r?.summary?.expenses, color: "text-rose-600", desc: "All recorded expenses" },
     { key: "profit", label: "Profit / loss", value: r?.summary?.profit, color: "text-brand-700", desc: "Inflow less expenses" },
-    { key: "sales", label: "Account aggregation", value: r?.summary?.sales, color: "text-brand-700", desc: "Total invoice item sales" },
     { key: "payments-in", label: "Payments IN", value: undefined, color: "text-emerald-600", desc: "View all inbound transactions" },
     { key: "payments-out", label: "Payments OUT", value: undefined, color: "text-rose-600", desc: "View all outbound transactions" },
     { key: "download", label: "Download", value: undefined, color: "text-brand-700", desc: "Advanced Excel exports" },
