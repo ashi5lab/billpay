@@ -157,6 +157,7 @@ export default function App() {
     props = { items, categories, staff, config, notify, reload: load, setReceipt, setExpenseRecord };
   return (
     <main className="min-h-screen pb-20">
+      <div className="print:hidden">
       <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div>
@@ -219,24 +220,21 @@ export default function App() {
           {view === "logs" && <Logs />}
         </section>
       </div>
+      
       {menuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-slate-900/40 md:hidden"
-          onClick={() => setMenuOpen(false)}
-        >
-          <aside
-            className="h-full w-72 bg-white p-4 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <b className="text-brand-700">Menu</b>
-              <button onClick={() => setMenuOpen(false)}>Close</button>
+        <div className="fixed inset-0 z-40 bg-slate-900/50 md:hidden" onClick={() => setMenuOpen(false)}>
+          <aside className="absolute right-0 top-0 h-full w-64 bg-white p-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="mb-6 flex items-center justify-between">
+              <span className="font-bold">Menu</span>
+              <button onClick={() => setMenuOpen(false)} className="text-slate-400">✕</button>
             </div>
-            {nav.map(([id, label]) => (
+            {nav.slice(5).map(([id, label]) => (
               <button
                 key={id}
                 onClick={() => select(id)}
-                className={`mb-1 w-full rounded-xl px-3 py-3 text-left ${view === id ? "bg-brand-600 text-white" : "text-slate-700"}`}
+                className={`block w-full rounded-xl px-4 py-3 text-left text-sm transition-colors ${
+                  view === id ? "bg-brand-50 text-brand-700 font-bold" : "text-slate-700 hover:bg-slate-50"
+                }`}
               >
                 {label}
               </button>
@@ -271,6 +269,8 @@ export default function App() {
           More
         </button>
       </nav>
+      </div>
+
       {receipt && (
         <PrintableReceipt
           data={receipt}
@@ -1404,19 +1404,39 @@ function PrintableReceipt({ data, config, close }: any) {
         const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
         
         pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-        pdf.save(`Zalish_${title}_${recordId}.pdf`);
+        
+        const filename = `Zalish_${title}_${recordId}.pdf`;
+        const pdfBlob = pdf.output("blob");
+        const file = new File([pdfBlob], filename, { type: "application/pdf" });
+        
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              title: filename,
+              text: decodeURIComponent(text),
+              files: [file]
+            });
+          } catch (shareError: any) {
+            console.error("Share failed", shareError);
+            if (shareError.name !== 'AbortError') {
+              pdf.save(filename);
+            }
+          }
+        } else {
+          pdf.save(filename);
+          window.open(`https://wa.me/91${phone}?text=${text}`, "_blank");
+        }
       } catch (e) {
-        console.error("PDF generation failed", e);
+        console.error("PDF generation/sharing failed", e);
       }
     }
     setGenerating(false);
-    window.open(`https://wa.me/91${phone}?text=${text}`, "_blank");
   };
 
   return (
-    <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/50 p-4">
-      <div className="mx-auto max-w-md">
-        <div id="receipt" className="rounded-2xl bg-white p-6 shadow-2xl relative">
+    <div className="fixed inset-0 z-40 overflow-auto bg-slate-900/50 p-4 print:static print:block print:bg-transparent print:p-0 print:overflow-visible">
+      <div className="mx-auto max-w-md print:max-w-full print:mx-0">
+        <div id="receipt" className="rounded-2xl bg-white p-6 shadow-2xl relative print:shadow-none print:p-0 print:w-full">
           <button onClick={close} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 print:hidden" aria-label="Close">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1522,12 +1542,17 @@ function PrintableReceipt({ data, config, close }: any) {
           {data.updated_by && <p>Updated by: {data.updated_by}</p>}
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2">
-          <button className="button-secondary" onClick={() => window.print()}>
+          <button className="button-secondary" onClick={() => {
+            const oldTitle = document.title;
+            document.title = `Zalish_${title}_${recordId}`;
+            window.print();
+            setTimeout(() => { document.title = oldTitle; }, 500);
+          }}>
             {isExpense ? "Print" : "Save PDF"}
           </button>
           <button
             className="button-secondary"
-            onClick={() => navigator.share?.({ title: "Zalish record", text })}
+            onClick={() => navigator.share?.({ title: `Zalish_${title}_${recordId}`, text })}
           >
             Share
           </button>
