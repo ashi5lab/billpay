@@ -93,7 +93,10 @@ export async function GET(req: Request) {
     items.sort((a, b) => {
       const dA = new Date(a.date).getTime();
       const dB = new Date(b.date).getTime();
-      return dB - dA;
+      if (dA !== dB) return dB - dA;
+      const cA = new Date(a.raw?.created_at || a.date).getTime();
+      const cB = new Date(b.raw?.created_at || b.date).getTime();
+      return cB - cA;
     });
 
     const profit = totalInflow - totalOutflow;
