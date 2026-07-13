@@ -222,19 +222,17 @@ export default function App() {
       </div>
       
       {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-slate-900/50 md:hidden" onClick={() => setMenuOpen(false)}>
-          <aside className="absolute right-0 top-0 h-full w-64 bg-white p-4 shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="mb-6 flex items-center justify-between">
-              <span className="font-bold">Menu</span>
-              <button onClick={() => setMenuOpen(false)} className="text-slate-400">✕</button>
+        <div className="fixed inset-0 z-40 bg-slate-900/40 md:hidden" onClick={() => setMenuOpen(false)}>
+          <aside className="h-full w-72 bg-white p-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <b className="text-brand-700">Menu</b>
+              <button onClick={() => setMenuOpen(false)}>Close</button>
             </div>
-            {nav.slice(5).map(([id, label]) => (
+            {nav.map(([id, label]) => (
               <button
                 key={id}
                 onClick={() => select(id)}
-                className={`block w-full rounded-xl px-4 py-3 text-left text-sm transition-colors ${
-                  view === id ? "bg-brand-50 text-brand-700 font-bold" : "text-slate-700 hover:bg-slate-50"
-                }`}
+                className={`mb-1 w-full rounded-xl px-3 py-3 text-left ${view === id ? "bg-brand-600 text-white" : "text-slate-700 hover:bg-slate-50 transition-colors"}`}
               >
                 {label}
               </button>
