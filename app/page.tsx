@@ -18,7 +18,7 @@ type Advance = {
 type Receipt = any;
 const api = async (url: string, options?: RequestInit) => {
   const method = options?.method || "GET";
-  
+
   if (method !== "GET" && typeof window !== "undefined") {
     Object.keys(localStorage).forEach(k => {
       if (k.startsWith("zalish_cache_")) localStorage.removeItem(k);
@@ -26,7 +26,7 @@ const api = async (url: string, options?: RequestInit) => {
   }
 
   const cacheKey = `zalish_cache_${url}`;
-  
+
   if (method === "GET" && typeof window !== "undefined") {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
@@ -35,15 +35,15 @@ const api = async (url: string, options?: RequestInit) => {
           if (r.ok) {
             const b = await r.json().catch(() => null);
             if (b) {
-               const fresh = JSON.stringify(b);
-               if (fresh !== cached) {
-                  localStorage.setItem(cacheKey, fresh);
-                  window.dispatchEvent(new CustomEvent("zalish_cache_updated"));
-               }
+              const fresh = JSON.stringify(b);
+              if (fresh !== cached) {
+                localStorage.setItem(cacheKey, fresh);
+                window.dispatchEvent(new CustomEvent("zalish_cache_updated"));
+              }
             }
           }
-        }).catch(() => {});
-      try { return JSON.parse(cached); } catch {}
+        }).catch(() => { });
+      try { return JSON.parse(cached); } catch { }
     }
   }
 
@@ -53,7 +53,7 @@ const api = async (url: string, options?: RequestInit) => {
   });
   const b = await r.json().catch(() => null);
   if (!r.ok) throw new Error(b?.error || "Something went wrong");
-  
+
   if (method === "GET" && b && typeof window !== "undefined") {
     try {
       localStorage.setItem(cacheKey, JSON.stringify(b));
@@ -61,10 +61,10 @@ const api = async (url: string, options?: RequestInit) => {
       Object.keys(localStorage).forEach(k => {
         if (k.startsWith("zalish_cache_")) localStorage.removeItem(k);
       });
-      try { localStorage.setItem(cacheKey, JSON.stringify(b)); } catch {}
+      try { localStorage.setItem(cacheKey, JSON.stringify(b)); } catch { }
     }
   }
-  
+
   return b;
 };
 const amount = (value: unknown) => {
@@ -111,7 +111,7 @@ export default function App() {
         api("/api/config"),
         api("/api/staff"),
       ]);
-      
+
       if (s && s.last_purge_at && typeof window !== "undefined") {
         const localPurge = localStorage.getItem("zalish_last_purge_at");
         if (localPurge && localPurge !== s.last_purge_at) {
@@ -173,115 +173,115 @@ export default function App() {
   return (
     <main className="min-h-screen pb-20">
       <div className="print:hidden">
-      <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="font-bold text-brand-700">
-              {config.store_name || "Zalish Boutique"}
-            </h1>
-            <p className="text-xs text-slate-500">Billing & store management</p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              className="rounded-full bg-brand-100 px-3 py-1 text-sm text-brand-700"
-              onClick={() => select("config")}
-            >
-              Settings
-            </button>
-            <button
-              aria-label="Open menu"
-              className="rounded-full bg-brand-600 px-3 py-1 text-white md:hidden"
-              onClick={() => setMenuOpen(true)}
-            >
-              Menu
-            </button>
-          </div>
-        </div>
-      </header>
-      <div className="mx-auto grid max-w-6xl md:grid-cols-[190px_1fr]">
-        <aside className="hidden border-r bg-white p-3 md:block">
-          {nav.map(([id, label]) => (
-            <button
-              key={id}
-              onClick={() => select(id)}
-              className={`mb-1 w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium ${view === id ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-brand-50"}`}
-            >
-              {label}
-            </button>
-          ))}
-          <div className="mt-8 border-t pt-4">
-            <button
-              className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
-              onClick={async () => {
-                await api("/api/auth/logout", { method: "POST" });
-                setAuthenticated(false);
-              }}
-            >
-              Sign out
-            </button>
-          </div>
-        </aside>
-        <section className="p-4">
-          {view === "dashboard" && <Dashboard {...props} />}{" "}
-          {view === "billing" && <Billing {...props} />}{" "}
-          {view === "advance" && <AdvanceForm {...props} />}{" "}
-          {view === "inventory" && <Inventory {...props} />}{" "}
-          {view === "expenses" && <Expenses {...props} />}{" "}
-          {view === "reports" && <Reports config={config} notify={notify} />}{" "}
-          {view === "config" && (
-            <Config config={config} setConfig={setConfig} notify={notify} />
-          )}
-          {view === "users" && <Users notify={notify} />}
-          {view === "logs" && <Logs />}
-        </section>
-      </div>
-      
-      {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-slate-900/40 md:hidden" onClick={() => setMenuOpen(false)}>
-          <aside className="h-full w-72 bg-white p-4 shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="mb-4 flex items-center justify-between">
-              <b className="text-brand-700">Menu</b>
-              <button onClick={() => setMenuOpen(false)}>Close</button>
+        <header className="sticky top-0 z-20 border-b bg-white/90 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+            <div>
+              <h1 className="font-bold text-brand-700">
+                {config.store_name || "Zalish Boutique"}
+              </h1>
+              <p className="text-xs text-slate-500">Billing & store management</p>
             </div>
+            <div className="flex gap-2">
+              <button
+                className="rounded-full bg-brand-100 px-3 py-1 text-sm text-brand-700"
+                onClick={() => select("config")}
+              >
+                Settings
+              </button>
+              <button
+                aria-label="Open menu"
+                className="rounded-full bg-brand-600 px-3 py-1 text-white md:hidden"
+                onClick={() => setMenuOpen(true)}
+              >
+                Menu
+              </button>
+            </div>
+          </div>
+        </header>
+        <div className="mx-auto grid max-w-6xl md:grid-cols-[190px_1fr]">
+          <aside className="hidden border-r bg-white p-3 md:block">
             {nav.map(([id, label]) => (
               <button
                 key={id}
                 onClick={() => select(id)}
-                className={`mb-1 w-full rounded-xl px-3 py-3 text-left ${view === id ? "bg-brand-600 text-white" : "text-slate-700 hover:bg-slate-50 transition-colors"}`}
+                className={`mb-1 w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium ${view === id ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-brand-50"}`}
               >
                 {label}
               </button>
             ))}
-            <button
-              className="mt-4 w-full rounded-xl border px-3 py-3 text-left text-rose-600"
-              onClick={async () => {
-                await api("/api/auth/logout", { method: "POST" });
-                setAuthenticated(false);
-                setMenuOpen(false);
-              }}
-            >
-              Sign out
-            </button>
+            <div className="mt-8 border-t pt-4">
+              <button
+                className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-rose-600 hover:bg-rose-50 transition-colors"
+                onClick={async () => {
+                  await api("/api/auth/logout", { method: "POST" });
+                  setAuthenticated(false);
+                }}
+              >
+                Sign out
+              </button>
+            </div>
           </aside>
+          <section className="p-4">
+            {view === "dashboard" && <Dashboard {...props} />}{" "}
+            {view === "billing" && <Billing {...props} />}{" "}
+            {view === "advance" && <AdvanceForm {...props} />}{" "}
+            {view === "inventory" && <Inventory {...props} />}{" "}
+            {view === "expenses" && <Expenses {...props} />}{" "}
+            {view === "reports" && <Reports config={config} notify={notify} />}{" "}
+            {view === "config" && (
+              <Config config={config} setConfig={setConfig} notify={notify} />
+            )}
+            {view === "users" && <Users notify={notify} />}
+            {view === "logs" && <Logs />}
+          </section>
         </div>
-      )}
-      <nav className="fixed bottom-0 z-30 flex w-full justify-around border-t bg-white px-1 py-2 md:hidden">
-        {nav.slice(0, 5).map(([id, label]) => (
+
+        {menuOpen && (
+          <div className="fixed inset-0 z-40 bg-slate-900/40 md:hidden" onClick={() => setMenuOpen(false)}>
+            <aside className="h-full w-72 bg-white p-4 shadow-xl" onClick={e => e.stopPropagation()}>
+              <div className="mb-4 flex items-center justify-between">
+                <b className="text-brand-700">Menu</b>
+                <button onClick={() => setMenuOpen(false)}>Close</button>
+              </div>
+              {nav.map(([id, label]) => (
+                <button
+                  key={id}
+                  onClick={() => select(id)}
+                  className={`mb-1 w-full rounded-xl px-3 py-3 text-left ${view === id ? "bg-brand-600 text-white" : "text-slate-700 hover:bg-slate-50 transition-colors"}`}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                className="mt-4 w-full rounded-xl border px-3 py-3 text-left text-rose-600"
+                onClick={async () => {
+                  await api("/api/auth/logout", { method: "POST" });
+                  setAuthenticated(false);
+                  setMenuOpen(false);
+                }}
+              >
+                Sign out
+              </button>
+            </aside>
+          </div>
+        )}
+        <nav className="fixed bottom-0 z-30 flex w-full justify-around border-t bg-white px-1 py-2 md:hidden">
+          {nav.slice(0, 5).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => select(id)}
+              className={`text-xs ${view === id ? "font-bold text-brand-700" : "text-slate-500"}`}
+            >
+              {label}
+            </button>
+          ))}
           <button
-            key={id}
-            onClick={() => select(id)}
-            className={`text-xs ${view === id ? "font-bold text-brand-700" : "text-slate-500"}`}
+            onClick={() => setMenuOpen(true)}
+            className="text-xs text-slate-500"
           >
-            {label}
+            More
           </button>
-        ))}
-        <button
-          onClick={() => setMenuOpen(true)}
-          className="text-xs text-slate-500"
-        >
-          More
-        </button>
-      </nav>
+        </nav>
       </div>
 
       {receipt && (
@@ -671,7 +671,7 @@ function AdvanceForm({ notify, setReceipt, staff }: any) {
           {f.id && <button type="button" onClick={() => setShowHistory(true)} className="button-secondary w-full">View Edit History</button>}
         </form>
       ) : (
-        <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{ key: "receipt_number", label: "Receipt #" }, { key: "issued_at", label: "Date", render: (r: any) => r.issued_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "attached_invoice_number", label: "Attached Bill", render: (r: any) => r.attached_invoice_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "advance_amount", label: "Amount", render: (r: any) => rupees(r.advance_amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} onHistoryClick={(id: string) => { setF({id} as any); setShowHistory(true); }} />
+        <DataTable endpoint="/api/advances" reloadTrigger={reloadTrigger} columns={[{ key: "receipt_number", label: "Receipt #" }, { key: "issued_at", label: "Date", render: (r: any) => r.issued_at?.slice(0, 10) }, { key: "customer_name", label: "Customer" }, { key: "assigned_to", label: "Assigned To" }, { key: "attached_invoice_number", label: "Attached Bill", render: (r: any) => r.attached_invoice_number || "—" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "advance_amount", label: "Amount", render: (r: any) => rupees(r.advance_amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setReceipt({ ...r, type: "advance" })} onHistoryClick={(id: string) => { setF({ id } as any); setShowHistory(true); }} />
       )}
     </div>
   );
@@ -832,7 +832,7 @@ function Expenses({ categories, reload, notify, setExpenseRecord, staff }: any) 
           </div>
         </div>
       ) : (
-        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{ key: "expense_date", label: "Date", render: (r: any) => r.expense_date?.slice(0, 10) }, { key: "expense_name", label: "Name" }, { key: "category_name", label: "Category" }, { key: "assigned_to", label: "Assigned To" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "amount", label: "Amount", render: (r: any) => rupees(r.amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setExpenseRecord(r)} onHistoryClick={(id: string) => { setF({id} as any); setShowHistory(true); }} />
+        <DataTable endpoint="/api/expenses" reloadTrigger={reloadTrigger} columns={[{ key: "expense_date", label: "Date", render: (r: any) => r.expense_date?.slice(0, 10) }, { key: "expense_name", label: "Name" }, { key: "category_name", label: "Category" }, { key: "assigned_to", label: "Assigned To" }, { key: "payment_mode", label: "Payment", render: (r: any) => r.payment_mode === "Other" ? (r.payment_mode_other || "Other") : r.payment_mode }, { key: "amount", label: "Amount", render: (r: any) => rupees(r.amount) }]} onEdit={edit} onDelete={remove} onRowClick={(r: any) => setExpenseRecord(r)} onHistoryClick={(id: string) => { setF({ id } as any); setShowHistory(true); }} />
       )}
     </div>
   );
@@ -847,7 +847,7 @@ function Reports({ config, notify }: any) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [detailsPage, setDetailsPage] = useState(1);
   const [detailsPerPage, setDetailsPerPage] = useState(10);
-  const [historyRecord, setHistoryRecord] = useState<{id: string, table: string} | null>(null);
+  const [historyRecord, setHistoryRecord] = useState<{ id: string, table: string } | null>(null);
   const [aggregationRange, setAggregationRange] = useState("current_month");
   const [aggregationCustomStart, setAggregationCustomStart] = useState(new Date().toLocaleDateString("en-CA"));
   const [aggregationCustomEnd, setAggregationCustomEnd] = useState(new Date().toLocaleDateString("en-CA"));
@@ -1239,6 +1239,9 @@ function Reports({ config, notify }: any) {
 }
 function Config({ config, setConfig, notify }: any) {
   const [saving, setSaving] = useState(false);
+  const [backingUp, setBackingUp] = useState(false);
+  const [purging, setPurging] = useState(false);
+
   const save = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -1255,6 +1258,29 @@ function Config({ config, setConfig, notify }: any) {
       setSaving(false);
     }
   };
+
+  const handleBackup = async () => {
+    setBackingUp(true);
+    try {
+      const res = await fetch("/api/config/backup");
+      if (!res.ok) throw new Error("Backup failed");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `zalish_backup_${new Date().toISOString().slice(0, 10)}.sql`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      notify("Database backup downloaded successfully.");
+    } catch (e: any) {
+      notify("Backup failed: " + e.message);
+    } finally {
+      setBackingUp(false);
+    }
+  };
+
   return (
     <form onSubmit={save} className="space-y-4">
       <h2 className="text-2xl font-bold">Store configuration</h2>
@@ -1281,11 +1307,21 @@ function Config({ config, setConfig, notify }: any) {
         />
       </div>
       <div className="flex flex-col sm:flex-row gap-3">
-        <button disabled={saving} className="button">{saving ? <><Spinner /> Saving…</> : "Save configuration"}</button>
-        <button 
-          type="button" 
-          className="button-secondary text-red-600 border-red-200 hover:bg-red-50" 
+        <button disabled={saving || backingUp || purging} className="button">{saving ? <><Spinner /> Saving…</> : "Save configuration"}</button>
+        <button
+          type="button"
+          disabled={saving || backingUp || purging}
+          className="button-secondary text-brand-600 border-brand-200 hover:bg-brand-50"
+          onClick={handleBackup}
+        >
+          {backingUp ? <><Spinner /> Exporting…</> : "Backup database (SQL)"}
+        </button>
+        <button
+          type="button"
+          disabled={saving || backingUp || purging}
+          className="button-secondary text-red-600 border-red-200 hover:bg-red-50"
           onClick={async () => {
+            setPurging(true);
             try {
               const res = await api("/api/config", { method: "POST" });
               if (res && res.last_purge_at) {
@@ -1298,10 +1334,12 @@ function Config({ config, setConfig, notify }: any) {
               notify("All devices cache purged successfully.");
             } catch (e: any) {
               notify("Purge failed: " + e.message);
+            } finally {
+              setPurging(false);
             }
           }}
         >
-          Purge all cache
+          {purging ? <><Spinner /> Purging…</> : "Purge all cache"}
         </button>
       </div>
     </form>
@@ -1392,23 +1430,23 @@ function Logs() {
     if (action === "UPDATE") {
       const oldV = details.old || {};
       const newV = details.new || {};
-      
+
       // Find modified fields
       const diffs: string[] = [];
       const keys = new Set([...Object.keys(oldV), ...Object.keys(newV)]);
-      
+
       for (const k of Array.from(keys)) {
         if (['id', 'updated_at', 'created_at', 'deleted_at', 'subtotal', 'is_edited', 'updated_by', 'balance_due', 'grand_total', 'tax_total', 'tax_amount'].includes(k)) continue;
-        
+
         let oVal = oldV[k];
         let nVal = newV[k];
-        
+
         if (k === 'items' && Array.isArray(oVal) && Array.isArray(nVal)) {
-           const formatItems = (arr: any[]) => arr.map(i => `${Number(i.quantity)} x ${i.item_name} @ ${Number(i.unit_price)}`).join(', ');
-           oVal = formatItems(oVal);
-           nVal = formatItems(nVal);
+          const formatItems = (arr: any[]) => arr.map(i => `${Number(i.quantity)} x ${i.item_name} @ ${Number(i.unit_price)}`).join(', ');
+          oVal = formatItems(oVal);
+          nVal = formatItems(nVal);
         }
-        
+
         if (typeof oVal !== 'object' && typeof nVal !== 'object' && oVal == nVal) continue;
         if (JSON.stringify(oVal) !== JSON.stringify(nVal)) {
           diffs.push(`${k.replace(/_/g, ' ')}: "${oVal || 'None'}" → "${nVal || 'None'}"`);
@@ -1459,14 +1497,14 @@ function Logs() {
           { key: "username", label: "User" },
           { key: "action", label: "Action", render: (r: any) => <span className="px-2 py-0.5 text-xs font-bold bg-slate-200 text-slate-700 rounded uppercase">{r.action}</span> },
           { key: "table_name", label: "Entity", render: (r: any) => <span className="text-slate-500 capitalize">{r.table_name.replace("zalish_", "")}</span> },
-          { 
-            key: "details", 
-            label: "Details", 
+          {
+            key: "details",
+            label: "Details",
             render: (r: any) => (
               <div className="max-w-[400px] text-xs">
                 <span className="text-slate-700">{formatLogDetails(r)}</span>
-                <button 
-                  className="text-brand-600 hover:text-brand-700 underline font-semibold ml-2 inline-block whitespace-nowrap" 
+                <button
+                  className="text-brand-600 hover:text-brand-700 underline font-semibold ml-2 inline-block whitespace-nowrap"
                   onClick={() => setSelectedJson(r.details)}
                 >
                   Show JSON
@@ -1518,19 +1556,19 @@ function PrintableReceipt({ data, config, close }: any) {
     if (receiptEl) {
       try {
         const html2canvas = (await import("html2canvas")).default;
-        
+
         const closeBtn = receiptEl.querySelector('button[aria-label="Close"]') as HTMLElement;
         if (closeBtn) closeBtn.style.display = 'none';
-        
+
         const canvas = await html2canvas(receiptEl, { scale: 2 });
-        
+
         if (closeBtn) closeBtn.style.display = '';
-        
+
         const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
         if (blob) {
           const filename = `Zalish_${title}_${recordId}.png`;
           const file = new File([blob], filename, { type: "image/png" });
-          
+
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             try {
               await navigator.share({
@@ -1857,20 +1895,20 @@ function EditHistoryModal({ recordId, tableName, onClose }: any) {
                   if (['id', 'updated_at', 'created_at', 'deleted_at', 'subtotal', 'is_edited', 'updated_by', 'balance_due', 'grand_total', 'tax_total'].includes(k)) continue;
                   let oldV = log.details.old[k];
                   let newV = log.details.new[k];
-                  
+
                   if (k === 'items' && Array.isArray(oldV) && Array.isArray(newV)) {
-                     const formatItems = (arr: any[]) => arr.map(i => `${Number(i.quantity)} x ${i.item_name} @ ${Number(i.unit_price)}`).join('\n');
-                     oldV = formatItems(oldV);
-                     newV = formatItems(newV);
+                    const formatItems = (arr: any[]) => arr.map(i => `${Number(i.quantity)} x ${i.item_name} @ ${Number(i.unit_price)}`).join('\n');
+                    oldV = formatItems(oldV);
+                    newV = formatItems(newV);
                   }
-                  
+
                   if (typeof oldV !== 'object' && typeof newV !== 'object' && oldV == newV) continue;
-                  
+
                   if (JSON.stringify(oldV) !== JSON.stringify(newV)) {
                     diffs.push({ key: k, oldV, newV });
                   }
                 }
-                
+
                 return (
                   <div className="space-y-2 mt-2">
                     {diffs.length === 0 && <p className="text-sm text-slate-500 italic">No fields were changed.</p>}
