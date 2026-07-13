@@ -1342,6 +1342,90 @@ function Users({ notify }: any) {
   );
 }
 function Logs() {
+  const [selectedJson, setSelectedJson] = useState<any>(null);
+
+  const formatLogDetails = (r: any) => {
+    const details = r.details;
+    if (!details) return "No details available";
+
+    const action = r.action;
+    const tableName = r.table_name;
+
+    if (action === "INSERT") {
+      if (tableName === "zalish_invoices") {
+        return `Created Cash Receipt #${details.invoice_number || ""} for customer "${details.customer_name || "Unknown"}" (Grand Total: ${rupees(details.grand_total || 0)})`;
+      }
+      if (tableName === "zalish_advances") {
+        return `Created Advance Receipt #${details.receipt_number || ""} for customer "${details.customer_name || "Unknown"}" (Amount: ${rupees(details.advance_amount || 0)})`;
+      }
+      if (tableName === "zalish_expenses") {
+        return `Created Expense "${details.expense_name || ""}" (Amount: ${rupees(details.amount || 0)})`;
+      }
+      if (tableName === "users") {
+        return `Created User Account: "${details.username || ""}"`;
+      }
+      return `Created new record in ${tableName.replace("zalish_", "")}`;
+    }
+
+    if (action === "UPDATE") {
+      const oldV = details.old || {};
+      const newV = details.new || {};
+      
+      // Find modified fields
+      const diffs: string[] = [];
+      const keys = new Set([...Object.keys(oldV), ...Object.keys(newV)]);
+      
+      for (const k of Array.from(keys)) {
+        if (['id', 'updated_at', 'created_at', 'deleted_at', 'subtotal', 'is_edited', 'updated_by', 'balance_due', 'grand_total', 'tax_total', 'tax_amount'].includes(k)) continue;
+        
+        let oVal = oldV[k];
+        let nVal = newV[k];
+        
+        if (k === 'items' && Array.isArray(oVal) && Array.isArray(nVal)) {
+           const formatItems = (arr: any[]) => arr.map(i => `${Number(i.quantity)} x ${i.item_name} @ ${Number(i.unit_price)}`).join(', ');
+           oVal = formatItems(oVal);
+           nVal = formatItems(nVal);
+        }
+        
+        if (typeof oVal !== 'object' && typeof nVal !== 'object' && oVal == nVal) continue;
+        if (JSON.stringify(oVal) !== JSON.stringify(nVal)) {
+          diffs.push(`${k.replace(/_/g, ' ')}: "${oVal || 'None'}" → "${nVal || 'None'}"`);
+        }
+      }
+
+      const diffString = diffs.length > 0 ? diffs.join("; ") : "No direct values changed";
+
+      if (tableName === "zalish_invoices") {
+        return `Edited Cash Receipt #${newV.invoice_number || oldV.invoice_number || ""} — [${diffString}]`;
+      }
+      if (tableName === "zalish_advances") {
+        return `Edited Advance Receipt #${newV.receipt_number || oldV.receipt_number || ""} — [${diffString}]`;
+      }
+      if (tableName === "zalish_expenses") {
+        return `Edited Expense "${newV.expense_name || oldV.expense_name || ""}" — [${diffString}]`;
+      }
+      if (tableName === "users") {
+        return `Edited User "${newV.username || oldV.username || ""}" — [${diffString}]`;
+      }
+      return `Updated record in ${tableName.replace("zalish_", "")} — [${diffString}]`;
+    }
+
+    if (action === "DELETE") {
+      if (tableName === "zalish_invoices") {
+        return `Deleted Cash Receipt (ID: ${r.record_id})`;
+      }
+      if (tableName === "zalish_advances") {
+        return `Deleted Advance Receipt (ID: ${r.record_id})`;
+      }
+      if (tableName === "zalish_expenses") {
+        return `Deleted Expense (ID: ${r.record_id})`;
+      }
+      return `Deleted record (ID: ${r.record_id}) from ${tableName.replace("zalish_", "")}`;
+    }
+
+    return `${action} action on ${tableName}`;
+  };
+
   return (
     <div className="card">
       <h2 className="text-2xl font-bold mb-4">Audit Logs</h2>
@@ -1351,11 +1435,35 @@ function Logs() {
         columns={[
           { key: "created_at", label: "Timestamp", render: (r: any) => new Date(r.created_at).toLocaleString() },
           { key: "username", label: "User" },
-          { key: "action", label: "Action" },
-          { key: "table_name", label: "Entity" },
-          { key: "details", label: "Details", render: (r: any) => <pre className="text-xs overflow-auto max-w-[200px]">{JSON.stringify(r.details)}</pre> }
+          { key: "action", label: "Action", render: (r: any) => <span className="px-2 py-0.5 text-xs font-bold bg-slate-200 text-slate-700 rounded uppercase">{r.action}</span> },
+          { key: "table_name", label: "Entity", render: (r: any) => <span className="text-slate-500 capitalize">{r.table_name.replace("zalish_", "")}</span> },
+          { 
+            key: "details", 
+            label: "Details", 
+            render: (r: any) => (
+              <div className="max-w-[400px] text-xs">
+                <span className="text-slate-700">{formatLogDetails(r)}</span>
+                <button 
+                  className="text-brand-600 hover:text-brand-700 underline font-semibold ml-2 inline-block whitespace-nowrap" 
+                  onClick={() => setSelectedJson(r.details)}
+                >
+                  Show JSON
+                </button>
+              </div>
+            )
+          }
         ]}
       />
+      {selectedJson && (
+        <Modal title="Raw Log Details" onClose={() => setSelectedJson(null)}>
+          <pre className="text-xs overflow-auto max-h-[60vh] bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono">
+            {JSON.stringify(selectedJson, null, 2)}
+          </pre>
+          <div className="mt-4 flex justify-end">
+            <button className="button-secondary" onClick={() => setSelectedJson(null)}>Close</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
