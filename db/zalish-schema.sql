@@ -52,3 +52,4 @@ CREATE TABLE IF NOT EXISTS zalish_invoice_items (
 );
 CREATE INDEX IF NOT EXISTS zalish_invoice_created_idx ON zalish_invoices(created_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS zalish_expense_date_idx ON zalish_expenses(expense_date DESC) WHERE deleted_at IS NULL;
+ALTER TABLE zalish_store_config ADD COLUMN IF NOT EXISTS last_purge_at TIMESTAMPTZ NOT NULL DEFAULT now();

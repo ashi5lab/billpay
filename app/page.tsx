@@ -111,6 +111,21 @@ export default function App() {
         api("/api/config"),
         api("/api/staff"),
       ]);
+      
+      if (s && s.last_purge_at && typeof window !== "undefined") {
+        const localPurge = localStorage.getItem("zalish_last_purge_at");
+        if (localPurge && localPurge !== s.last_purge_at) {
+          Object.keys(localStorage).forEach(k => {
+            if (k.startsWith("zalish_cache_")) localStorage.removeItem(k);
+          });
+          localStorage.setItem("zalish_last_purge_at", s.last_purge_at);
+          window.location.reload();
+          return;
+        } else if (!localPurge) {
+          localStorage.setItem("zalish_last_purge_at", s.last_purge_at);
+        }
+      }
+
       setItems(i.items || i);
       setCategories(c.items || c);
       setConfig(s);
@@ -1270,11 +1285,20 @@ function Config({ config, setConfig, notify }: any) {
         <button 
           type="button" 
           className="button-secondary text-red-600 border-red-200 hover:bg-red-50" 
-          onClick={() => {
-            Object.keys(localStorage).forEach(k => {
-              if (k.startsWith("zalish_cache_")) localStorage.removeItem(k);
-            });
-            notify("All local caches purged successfully.");
+          onClick={async () => {
+            try {
+              const res = await api("/api/config", { method: "POST" });
+              if (res && res.last_purge_at) {
+                localStorage.setItem("zalish_last_purge_at", res.last_purge_at);
+                setConfig(res);
+              }
+              Object.keys(localStorage).forEach(k => {
+                if (k.startsWith("zalish_cache_")) localStorage.removeItem(k);
+              });
+              notify("All devices cache purged successfully.");
+            } catch (e: any) {
+              notify("Purge failed: " + e.message);
+            }
           }}
         >
           Purge all cache

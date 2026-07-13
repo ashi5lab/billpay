@@ -38,6 +38,9 @@ async function migrate() {
       )
     `);
 
+    // Add last_purge_at to zalish_store_config
+    await client.query('ALTER TABLE zalish_store_config ADD COLUMN IF NOT EXISTS last_purge_at TIMESTAMPTZ NOT NULL DEFAULT now()');
+
     await client.query('COMMIT');
     console.log('Migration successful');
   } catch (e) {

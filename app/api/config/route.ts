@@ -1,3 +1,5 @@
 import { NextResponse } from "next/server"; import { db } from "@/lib/db"; import { requireAdmin } from "@/lib/auth";
 export async function GET() { try { await requireAdmin(); const { rows } = await db.query("SELECT * FROM zalish_store_config WHERE id=1"); return NextResponse.json(rows[0]); } catch { return NextResponse.json({error:"Unauthorised"},{status:401}); } }
 export async function PUT(req: Request) { try { await requireAdmin(); const b = await req.json(); const { rows } = await db.query("UPDATE zalish_store_config SET store_name=$1,address=$2,contact_number=$3,gstin=$4,updated_at=now() WHERE id=1 RETURNING *", [b.store_name, b.address, b.contact_number, b.gstin || null]); return NextResponse.json(rows[0]); } catch { return NextResponse.json({error:"Unauthorised"},{status:401}); } }
+export async function POST() { try { await requireAdmin(); const { rows } = await db.query("UPDATE zalish_store_config SET last_purge_at=now() WHERE id=1 RETURNING *"); return NextResponse.json(rows[0]); } catch { return NextResponse.json({error:"Unauthorised"},{status:401}); } }
+
