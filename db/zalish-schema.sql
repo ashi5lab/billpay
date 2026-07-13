@@ -6,13 +6,13 @@ CREATE TABLE IF NOT EXISTS zalish_store_config (
 );
 INSERT INTO zalish_store_config (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 CREATE TABLE IF NOT EXISTS zalish_users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'admin' CHECK (role = 'admin'), created_at TIMESTAMPTZ NOT NULL DEFAULT now(), deleted_at TIMESTAMPTZ
 );
 -- Bootstrap administrator. Sign in with username: admin, password: root, then change this before real use.
-INSERT INTO zalish_users (name, email, password_hash, role)
-VALUES ('Administrator', 'admin@zalish.local', crypt('root', gen_salt('bf')), 'admin')
-ON CONFLICT (email) DO NOTHING;
+INSERT INTO zalish_users (name, username, password_hash, role)
+VALUES ('Administrator', 'admin', crypt('root', gen_salt('bf')), 'admin')
+ON CONFLICT (username) DO NOTHING;
 CREATE TABLE IF NOT EXISTS zalish_expense_categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL UNIQUE, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), deleted_at TIMESTAMPTZ
 );

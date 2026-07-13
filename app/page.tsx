@@ -1285,7 +1285,7 @@ function Config({ config, setConfig, notify }: any) {
 }
 function Users({ notify }: any) {
   const [tab, setTab] = useState("create");
-  const [f, setF] = useState<any>({ id: "", name: "", email: "", password: "" });
+  const [f, setF] = useState<any>({ id: "", name: "", username: "", password: "" });
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -1300,13 +1300,13 @@ function Users({ notify }: any) {
         await api("/api/users", { method: "POST", body: JSON.stringify(f) });
         notify("User created.");
       }
-      setF({ id: "", name: "", email: "", password: "" });
+      setF({ id: "", name: "", username: "", password: "" });
       setReloadTrigger(x => x + 1);
       setTab("manage");
     } catch (e: any) { notify(e.message); } finally { setSaving(false); }
   };
 
-  const edit = (row: any) => { setF({ id: row.id, name: row.name, email: row.email, password: "" }); setTab("create"); };
+  const edit = (row: any) => { setF({ id: row.id, name: row.name, username: row.username, password: "" }); setTab("create"); };
   const remove = async (row: any) => { await api("/api/users", { method: "DELETE", body: JSON.stringify({ id: row.id }) }); setReloadTrigger(x => x + 1); notify("User deleted."); };
 
   return (
@@ -1314,24 +1314,24 @@ function Users({ notify }: any) {
       <div className="flex justify-between items-center mb-4 border-b pb-4">
         <h2 className="text-2xl font-bold">Users</h2>
         <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", name: "", email: "", password: "" }); }}>{f.id ? "Edit User" : "Create User"}</button>
+          <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "create" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => { setTab("create"); setF({ id: "", name: "", username: "", password: "" }); }}>{f.id ? "Edit User" : "Create User"}</button>
           <button type="button" className={`text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${tab === "manage" ? "bg-white text-brand-700 shadow" : "text-slate-600 hover:text-slate-900"}`} onClick={() => setTab("manage")}>Manage</button>
         </div>
       </div>
       {tab === "create" ? (
         <form onSubmit={submit} className="card grid gap-3 sm:grid-cols-2">
           <Field label="Name *" value={f.name} onChange={(v: any) => setF({ ...f, name: v })} />
-          <Field label="Email (Username) *" type="email" value={f.email} onChange={(v: any) => setF({ ...f, email: v })} disabled={!!f.id} />
+          <Field label="Username *" type="text" value={f.username} onChange={(v: any) => setF({ ...f, username: v })} />
           <Field label={f.id ? "New Password (leave blank to keep current)" : "Password *"} type="password" value={f.password} onChange={(v: any) => setF({ ...f, password: v })} />
           <div className="sm:col-span-2">
             <button disabled={saving} className="button">{saving ? <><Spinner /> Saving…</> : (f.id ? "Update User" : "Create User")}</button>
-            {f.id && <button type="button" className="button-secondary ml-3" onClick={() => { setF({ id: "", name: "", email: "", password: "" }); setTab("manage"); }}>Cancel</button>}
+            {f.id && <button type="button" className="button-secondary ml-3" onClick={() => { setF({ id: "", name: "", username: "", password: "" }); setTab("manage"); }}>Cancel</button>}
           </div>
         </form>
       ) : (
         <DataTable endpoint="/api/users" reloadTrigger={reloadTrigger} filterDate={false} columns={[
           { key: "name", label: "Name" },
-          { key: "email", label: "Email" },
+          { key: "username", label: "Username" },
           { key: "role", label: "Role" },
           { key: "created_at", label: "Created At", render: (r: any) => r.created_at?.slice(0, 10) }
         ]} onEdit={edit} onDelete={remove} />
@@ -1348,7 +1348,7 @@ function Logs() {
         filterDate={false}
         columns={[
           { key: "created_at", label: "Timestamp", render: (r: any) => new Date(r.created_at).toLocaleString() },
-          { key: "user_email", label: "User" },
+          { key: "username", label: "User" },
           { key: "action", label: "Action" },
           { key: "table_name", label: "Entity" },
           { key: "details", label: "Details", render: (r: any) => <pre className="text-xs overflow-auto max-w-[200px]">{JSON.stringify(r.details)}</pre> }
@@ -1682,7 +1682,7 @@ function EditHistoryModal({ recordId, tableName, onClose }: any) {
             <div key={log.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50">
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className="font-semibold">{log.user_email}</p>
+                  <p className="font-semibold">{log.username}</p>
                   <p className="text-xs text-slate-500">{new Date(log.created_at).toLocaleString()}</p>
                 </div>
                 <span className="px-2 py-0.5 text-xs font-bold bg-slate-200 text-slate-700 rounded uppercase">{log.action}</span>

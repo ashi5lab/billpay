@@ -102,7 +102,7 @@ export async function POST(req: Request) {
     );
     const advance = rows[0];
     await c.query(
-      "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+      "INSERT INTO zalish_logs(table_name, record_id, action, username, details) VALUES($1,$2,$3,$4,$5)",
       ["zalish_advances", String(advance.id), "INSERT", user, JSON.stringify(advance)]
     );
     return advance;
@@ -139,7 +139,7 @@ export async function PATCH(req: Request) {
       );
       if (!rows[0]) throw new Error("Advance not found or already settled");
       await c.query(
-        "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+        "INSERT INTO zalish_logs(table_name, record_id, action, username, details) VALUES($1,$2,$3,$4,$5)",
         ["zalish_advances", String(rows[0].id), "UPDATE", user, JSON.stringify({ old: oldRows[0], new: rows[0] })]
       );
       return rows[0];
@@ -164,7 +164,7 @@ export async function DELETE(req: Request) {
       );
       if (rowCount === 0) throw new Error("Advance not found or already settled");
       await c.query(
-        "INSERT INTO zalish_logs(table_name, record_id, action, user_email, details) VALUES($1,$2,$3,$4,$5)",
+        "INSERT INTO zalish_logs(table_name, record_id, action, username, details) VALUES($1,$2,$3,$4,$5)",
         ["zalish_advances", String(id), "DELETE", user, JSON.stringify({ id, deleted_at: new Date().toISOString() })]
       );
     });

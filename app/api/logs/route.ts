@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     const tableName = p.get("table_name");
 
     if (search) {
-      whereClause += ` AND (table_name ILIKE $${paramCount} OR action ILIKE $${paramCount} OR user_email ILIKE $${paramCount})`;
+      whereClause += ` AND (table_name ILIKE $${paramCount} OR action ILIKE $${paramCount} OR username ILIKE $${paramCount})`;
       params.push(`%${search}%`);
       paramCount++;
     }
