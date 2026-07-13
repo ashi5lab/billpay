@@ -1367,7 +1367,7 @@ function PrintableReceipt({ data, config, close }: any) {
   const isAdvance = data.type === "advance";
   const isInvoice = data.type === "invoice" || (!isExpense && !isAdvance);
 
-  const title = isExpense ? "EXPENSE VOUCHER" : isAdvance ? "ADVANCE RECEIPT" : "INVOICE";
+  const title = isExpense ? "EXPENSE VOUCHER" : isAdvance ? "ADVANCE RECEIPT" : "CASH RECEIPT";
   const isPaid = !isInvoice || (data.payment_status !== "NOT PAID");
 
   const recordId = isExpense
@@ -1382,13 +1382,12 @@ function PrintableReceipt({ data, config, close }: any) {
       : `Thank you for shopping with ${config?.store_name || 'us'}. ${title} ${recordId}: ${rupees(amountText)}`
   );
 
-  const handleWhatsApp = async () => {
+  const handleShareImage = async (toWhatsApp = false) => {
     setGenerating(true);
     const receiptEl = document.getElementById("receipt");
     if (receiptEl) {
       try {
         const html2canvas = (await import("html2canvas")).default;
-        const { jsPDF } = await import("jspdf");
         
         const closeBtn = receiptEl.querySelector('button[aria-label="Close"]') as HTMLElement;
         if (closeBtn) closeBtn.style.display = 'none';
@@ -1397,37 +1396,39 @@ function PrintableReceipt({ data, config, close }: any) {
         
         if (closeBtn) closeBtn.style.display = '';
         
-        const imgData = canvas.toDataURL("image/png");
-        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-        
-        const filename = `Zalish_${title}_${recordId}.pdf`;
-        const pdfBlob = pdf.output("blob");
-        const file = new File([pdfBlob], filename, { type: "application/pdf" });
-        
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          try {
-            await navigator.share({
-              title: filename,
-              text: decodeURIComponent(text),
-              files: [file]
-            });
-          } catch (shareError: any) {
-            console.error("Share failed", shareError);
-            if (shareError.name !== 'AbortError') {
-              pdf.save(filename);
+        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+        if (blob) {
+          const filename = `Zalish_${title}_${recordId}.png`;
+          const file = new File([blob], filename, { type: "image/png" });
+          
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                title: filename,
+                text: decodeURIComponent(text),
+                files: [file]
+              });
+            } catch (shareError: any) {
+              console.error("Share failed", shareError);
+              if (shareError.name !== 'AbortError') {
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+              }
+            }
+          } else {
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            if (toWhatsApp && phone) {
+              window.open(`https://wa.me/91${phone}?text=${text}`, "_blank");
             }
           }
-        } else {
-          pdf.save(filename);
-          window.open(`https://wa.me/91${phone}?text=${text}`, "_blank");
         }
       } catch (e) {
-        console.error("PDF generation/sharing failed", e);
+        console.error("Image generation/sharing failed", e);
       }
     }
     setGenerating(false);
@@ -1504,14 +1505,18 @@ function PrintableReceipt({ data, config, close }: any) {
                   <span>Subtotal</span>
                   <span>{rupees(data.subtotal)}</span>
                 </p>
-                <p className="flex justify-between">
-                  <span>Discount</span>
-                  <span>−{rupees(data.discount)}</span>
-                </p>
-                <p className="flex justify-between">
-                  <span>GST / Tax</span>
-                  <span>{rupees(data.tax_amount)}</span>
-                </p>
+                {Number(data.discount) > 0 && (
+                  <p className="flex justify-between">
+                    <span>Discount</span>
+                    <span>−{rupees(data.discount)}</span>
+                  </p>
+                )}
+                {Number(data.tax_amount) > 0 && (
+                  <p className="flex justify-between">
+                    <span>GST / Tax</span>
+                    <span>{rupees(data.tax_amount)}</span>
+                  </p>
+                )}
               </>
             )}
             <p className="flex justify-between text-lg font-bold">
@@ -1541,7 +1546,7 @@ function PrintableReceipt({ data, config, close }: any) {
           <p>Created by: {data.created_by || "Unknown"} on {data.created_at?.slice(0, 10) || data.date}</p>
           {data.updated_by && <p>Updated by: {data.updated_by}</p>}
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="mt-3 grid grid-cols-3 gap-2 print:hidden">
           <button className="button-secondary" onClick={() => {
             const oldTitle = document.title;
             document.title = `Zalish_${title}_${recordId}`;
@@ -1552,14 +1557,15 @@ function PrintableReceipt({ data, config, close }: any) {
           </button>
           <button
             className="button-secondary"
-            onClick={() => navigator.share?.({ title: `Zalish_${title}_${recordId}`, text })}
+            onClick={() => handleShareImage(false)}
+            disabled={generating}
           >
-            Share
+            {generating ? <Spinner /> : "Share"}
           </button>
           {phone ? (
             <button
               className="button flex items-center justify-center gap-1"
-              onClick={handleWhatsApp}
+              onClick={() => handleShareImage(true)}
               disabled={generating}
             >
               {generating ? <Spinner /> : "WhatsApp"}
