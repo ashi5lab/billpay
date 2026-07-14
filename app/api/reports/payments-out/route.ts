@@ -54,10 +54,47 @@ export async function GET(req: Request) {
       LIMIT $${limitIdx} OFFSET $${offsetIdx}
     `;
 
-    // Note: We mapped `expense_name` to `bill_number` and `category_name` to `customer_name` 
-    // so that it works seamlessly with the generic DataTable columns we'll use in Reports.
+    const summaryParams = [search ? "1" : "", searchPattern];
+    let summaryDateQuery = "";
+    if (startDate) {
+      summaryParams.push(startDate);
+      summaryDateQuery += ` AND date >= $${summaryParams.length}`;
+    }
+    if (endDate) {
+      summaryParams.push(endDate);
+      summaryDateQuery += ` AND date <= $${summaryParams.length}`;
+    }
 
-    const { rows } = await db.query(query, params);
+    const summaryQuery = `
+      WITH base AS (
+        SELECT 
+          e.id, 'expense' as record_type, e.expense_name as bill_number, 
+          NULL as receipt_number, c.name as customer_name, e.assigned_to, 
+          e.amount, e.payment_mode, COALESCE(e.expense_date, e.date, e.created_at) as date
+        FROM zalish_expenses e
+        LEFT JOIN zalish_expense_categories c ON c.id = e.category_id
+        WHERE e.deleted_at IS NULL
+      ),
+      filtered AS (
+        SELECT * FROM base
+        WHERE ($1 = '' OR customer_name ILIKE $2 OR bill_number ILIKE $2)
+      )
+      SELECT 
+        COALESCE(SUM(amount) FILTER (WHERE payment_mode = 'UPI'), 0)::float as upi,
+        COALESCE(SUM(amount) FILTER (WHERE payment_mode = 'Cash'), 0)::float as cash,
+        COALESCE(SUM(amount) FILTER (WHERE payment_mode = 'Card'), 0)::float as card,
+        COALESCE(SUM(amount) FILTER (WHERE payment_mode NOT IN ('UPI', 'Cash', 'Card')), 0)::float as other
+      FROM filtered
+      WHERE 1=1 ${summaryDateQuery}
+    `;
+
+    const [dataRes, summaryRes] = await Promise.all([
+      db.query(query, params),
+      db.query(summaryQuery, summaryParams)
+    ]);
+
+    const rows = dataRes.rows;
+    const summary = summaryRes.rows[0] || { upi: 0, cash: 0, card: 0, other: 0 };
 
     const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
     const totalPages = Math.ceil(totalCount / limit) || 1;
@@ -80,7 +117,7 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ items, totalPages, currentPage: page });
+    return NextResponse.json({ items, totalPages, currentPage: page, summary });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Error fetching payments-out" },

@@ -62,7 +62,55 @@ export async function GET(req: Request) {
       LIMIT $${limitIdx} OFFSET $${offsetIdx}
     `;
 
-    const { rows } = await db.query(query, params);
+    const summaryParams = [search ? "1" : "", searchPattern];
+    let summaryDateQuery = "";
+    if (startDate) {
+      summaryParams.push(startDate);
+      summaryDateQuery += ` AND date >= $${summaryParams.length}`;
+    }
+    if (endDate) {
+      summaryParams.push(endDate);
+      summaryDateQuery += ` AND date <= $${summaryParams.length}`;
+    }
+
+    const summaryQuery = `
+      WITH combined AS (
+        SELECT 
+          id, COALESCE(date, created_at) as date, invoice_number as bill_number, 
+          NULL as receipt_number, customer_name, assigned_to, 
+          grand_total as amount, payment_mode 
+        FROM zalish_invoices 
+        WHERE deleted_at IS NULL AND grand_total > 0
+        
+        UNION ALL
+        
+        SELECT 
+          id, COALESCE(date, issued_at) as date, NULL as bill_number, 
+          receipt_number, customer_name, assigned_to, 
+          advance_amount as amount, payment_mode 
+        FROM zalish_advances 
+        WHERE deleted_at IS NULL AND advance_amount > 0
+      ),
+      filtered AS (
+        SELECT * FROM combined
+        WHERE ($1 = '' OR customer_name ILIKE $2 OR bill_number ILIKE $2 OR receipt_number ILIKE $2)
+      )
+      SELECT 
+        COALESCE(SUM(amount) FILTER (WHERE payment_mode = 'UPI'), 0)::float as upi,
+        COALESCE(SUM(amount) FILTER (WHERE payment_mode = 'Cash'), 0)::float as cash,
+        COALESCE(SUM(amount) FILTER (WHERE payment_mode = 'Card'), 0)::float as card,
+        COALESCE(SUM(amount) FILTER (WHERE payment_mode NOT IN ('UPI', 'Cash', 'Card')), 0)::float as other
+      FROM filtered
+      WHERE 1=1 ${summaryDateQuery}
+    `;
+
+    const [dataRes, summaryRes] = await Promise.all([
+      db.query(query, params),
+      db.query(summaryQuery, summaryParams)
+    ]);
+
+    const rows = dataRes.rows;
+    const summary = summaryRes.rows[0] || { upi: 0, cash: 0, card: 0, other: 0 };
 
     const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
     const totalPages = Math.ceil(totalCount / limit) || 1;
@@ -88,7 +136,7 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({ items, totalPages, currentPage: page });
+    return NextResponse.json({ items, totalPages, currentPage: page, summary });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Error fetching payments-in" },

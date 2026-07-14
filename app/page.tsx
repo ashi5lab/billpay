@@ -310,7 +310,7 @@ export default function App() {
   );
 }
 function Login({ onSuccess }: { onSuccess: () => void }) {
-  const [username, setUsername] = useState("admin"),
+  const [username, setUsername] = useState(""),
     [password, setPassword] = useState(""),
     [error, setError] = useState(""),
     [saving, setSaving] = useState(false),
@@ -376,9 +376,6 @@ function Login({ onSuccess }: { onSuccess: () => void }) {
         >
           ⇩ Install Zalish app
         </button>
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Initial login: admin · root
-        </p>
       </div>
     </main>
   );
@@ -852,6 +849,7 @@ function Reports({ config, notify }: any) {
   const [aggregationCustomStart, setAggregationCustomStart] = useState(new Date().toLocaleDateString("en-CA"));
   const [aggregationCustomEnd, setAggregationCustomEnd] = useState(new Date().toLocaleDateString("en-CA"));
   const [aggregationSummary, setAggregationSummary] = useState<any>(null);
+  const [paymentsSummary, setPaymentsSummary] = useState<any>(null);
 
   useEffect(() => { api("/api/reports").then(setR).catch(() => { }); }, []);
 
@@ -862,6 +860,7 @@ function Reports({ config, notify }: any) {
     { key: "profit", label: "Profit / loss", value: r?.summary?.profit, color: "text-brand-700", desc: "Inflow less expenses" },
     { key: "payments-in", label: "Payments IN", value: undefined, color: "text-emerald-600", desc: "View all inbound transactions" },
     { key: "payments-out", label: "Payments OUT", value: undefined, color: "text-rose-600", desc: "View all outbound transactions" },
+    { key: "user-reports", label: "User reports", value: undefined, color: "text-brand-700", desc: "Assigned inflow, outflow & detail logs" },
     { key: "download", label: "Download", value: undefined, color: "text-brand-700", desc: "Advanced Excel exports" },
   ];
 
@@ -892,6 +891,7 @@ function Reports({ config, notify }: any) {
       setLoadingDetails(false);
     } else if (key === "payments-in" || key === "payments-out") {
       setPaymentModeFilter("All");
+      setPaymentsSummary(null);
     }
   };
 
@@ -936,7 +936,7 @@ function Reports({ config, notify }: any) {
       {!activeCard ? (
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
           {!r ? (
-            [...Array(7)].map((_, i) => (
+            [...Array(8)].map((_, i) => (
               <div className="card" key={i}>
                 <div className="h-5 bg-slate-200 rounded animate-pulse w-32 mb-3"></div>
                 <div className="h-8 bg-slate-100 rounded animate-pulse w-24 mb-3"></div>
@@ -953,6 +953,8 @@ function Reports({ config, notify }: any) {
             ))
           )}
         </div>
+      ) : activeCard === "user-reports" ? (
+        <UserReports notify={notify} config={config} />
       ) : activeCard === "download" ? (
         <div className="space-y-4 max-w-lg">
           <h3 className="font-semibold text-lg">Advanced Downloads</h3>
@@ -1078,6 +1080,28 @@ function Reports({ config, notify }: any) {
       ) : activeCard === "payments-in" || activeCard === "payments-out" ? (
         <div className="space-y-4">
           <h3 className="font-semibold text-lg">{cards.find(c => c.key === activeCard)?.label}</h3>
+          
+          {paymentsSummary && (
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+              <div className="card bg-brand-50/40 border-brand-100/50">
+                <p className="font-semibold text-brand-900 text-sm">UPI Total</p>
+                <p className="mt-1 text-2xl font-bold text-brand-700">{rupees(paymentsSummary.upi)}</p>
+              </div>
+              <div className="card bg-emerald-50/40 border-emerald-100/50">
+                <p className="font-semibold text-emerald-900 text-sm">Cash Total</p>
+                <p className="mt-1 text-2xl font-bold text-emerald-700">{rupees(paymentsSummary.cash)}</p>
+              </div>
+              <div className="card bg-indigo-50/40 border-indigo-100/50">
+                <p className="font-semibold text-indigo-900 text-sm">Card Total</p>
+                <p className="mt-1 text-2xl font-bold text-indigo-700">{rupees(paymentsSummary.card)}</p>
+              </div>
+              <div className="card bg-slate-50 border-slate-200">
+                <p className="font-semibold text-slate-900 text-sm">Other Total</p>
+                <p className="mt-1 text-2xl font-bold text-slate-700">{rupees(paymentsSummary.other)}</p>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2 border-b pb-2 overflow-x-auto">
             {["All", "UPI", "Cash", "Card"].map(m => (
               <button
@@ -1092,6 +1116,7 @@ function Reports({ config, notify }: any) {
           <DataTable
             endpoint={`/api/reports/${activeCard}?mode=${paymentModeFilter}`}
             onRowClick={(r: any) => setViewRecord(r.raw)}
+            onDataFetched={(res: any) => setPaymentsSummary(res.summary)}
             columns={[
               { key: "date", label: "Date", render: (r: any) => r.date?.slice(0, 10) },
               { key: "bill_number", label: "Bill / Expense" },
@@ -1234,6 +1259,363 @@ function Reports({ config, notify }: any) {
         </div>
       )}
       {viewRecord && <PrintableReceipt data={viewRecord} config={config} close={() => setViewRecord(null)} />}
+    </div>
+  );
+}
+function UserReports({ notify, config }: any) {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+
+  // Pagination for user cards
+  const [cardPage, setCardPage] = useState(1);
+  const cardsPerPage = 6;
+
+  // Selected User Report States
+  const [records, setRecords] = useState<any[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [detailPage, setDetailPage] = useState(1);
+  const [detailLimit, setDetailLimit] = useState(10);
+  const [totalDetailPages, setTotalDetailPages] = useState(1);
+  const [filterType, setFilterType] = useState("All"); // All, Inflow, Outflow
+  const [filterMode, setFilterMode] = useState("All"); // All, UPI, Cash, Card, Other
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [detailSearch, setDetailSearch] = useState("");
+  const [summary, setSummary] = useState<any>({ total_inflow: 0, total_outflow: 0 });
+  const [viewRecord, setViewRecord] = useState<any>(null);
+
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await api("/api/reports/users");
+      setUsers(res || []);
+    } catch (e: any) {
+      notify("Failed to load user reports: " + e.message);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUserDetails = async () => {
+    if (!selectedUser) return;
+    setLoadingDetails(true);
+    try {
+      const q = new URLSearchParams();
+      q.append("name", selectedUser);
+      q.append("type", filterType);
+      q.append("mode", filterMode);
+      q.append("page", detailPage.toString());
+      q.append("limit", detailLimit.toString());
+      if (startDate) q.append("startDate", startDate);
+      if (endDate) q.append("endDate", endDate);
+      if (detailSearch) q.append("search", detailSearch);
+
+      const res = await api(`/api/reports/users/detail?${q.toString()}`);
+      setRecords(res.items || []);
+      setTotalDetailPages(res.totalPages || 1);
+      setSummary(res.summary || { total_inflow: 0, total_outflow: 0 });
+    } catch (e: any) {
+      notify("Failed to load user report details: " + e.message);
+    }
+    setLoadingDetails(false);
+  };
+
+  useEffect(() => {
+    loadUserDetails();
+  }, [selectedUser, filterType, filterMode, detailPage, detailLimit, startDate, endDate]);
+
+  // Debounced/delayed search in user details
+  useEffect(() => {
+    if (!selectedUser) return;
+    const t = setTimeout(() => {
+      setDetailPage(1);
+      loadUserDetails();
+    }, 400);
+    return () => clearTimeout(t);
+  }, [detailSearch]);
+
+  // Filter users based on search
+  const filteredUsers = users.filter((u: any) => 
+    u.name?.toLowerCase().includes(search.toLowerCase()) ||
+    u.username?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalCardPages = Math.ceil(filteredUsers.length / cardsPerPage) || 1;
+  const currentUsers = filteredUsers.slice((cardPage - 1) * cardsPerPage, cardPage * cardsPerPage);
+
+  const handleBack = () => {
+    setSelectedUser(null);
+    setRecords([]);
+    setDetailPage(1);
+    setFilterType("All");
+    setFilterMode("All");
+    setStartDate("");
+    setEndDate("");
+    setDetailSearch("");
+    loadUsers(); // Refresh summaries
+  };
+
+  return (
+    <div className="space-y-4">
+      {viewRecord && <PrintableReceipt data={viewRecord} config={config} close={() => setViewRecord(null)} />}
+      
+      <div className="flex justify-between items-center border-b pb-4">
+        <h3 className="font-semibold text-lg">{selectedUser ? `User Report: ${selectedUser}` : "Select a User"}</h3>
+        {selectedUser && (
+          <button type="button" className="button-secondary text-sm px-4 py-1.5" onClick={handleBack}>
+            Back to Users
+          </button>
+        )}
+      </div>
+
+      {!selectedUser ? (
+        <div className="space-y-4">
+          <input
+            placeholder="Search users..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setCardPage(1); }}
+            className="w-full max-w-md rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
+          />
+
+          {loading ? (
+            <div className="flex justify-center p-8"><Spinner /></div>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {currentUsers.length === 0 && <p className="text-slate-500 p-4 text-center sm:col-span-3">No users found</p>}
+                {currentUsers.map((u: any) => {
+                  const net = u.inflow - u.outflow;
+                  return (
+                    <button
+                      type="button"
+                      key={u.id}
+                      onClick={() => setSelectedUser(u.name)}
+                      className="card text-left hover:shadow-md transition-shadow flex flex-col justify-between"
+                    >
+                      <div>
+                        <h3 className="font-bold text-lg text-slate-800">{u.name}</h3>
+                        <p className="text-xs text-slate-400">@{u.username}</p>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-3 text-sm">
+                        <div>
+                          <span className="text-slate-400 block text-xs">Total Inflow</span>
+                          <span className="font-bold text-emerald-600">{rupees(u.inflow)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block text-xs">Total Outflow</span>
+                          <span className="font-bold text-rose-600">{rupees(u.outflow)}</span>
+                        </div>
+                        <div className="col-span-2 border-t pt-2 mt-1">
+                          <span className="text-slate-400 block text-xs">Net assigned</span>
+                          <span className={`font-bold ${net >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                            {net >= 0 ? "+" : ""}{rupees(net)}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {totalCardPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-6">
+                  <button
+                    type="button"
+                    className="button-secondary text-sm disabled:opacity-50"
+                    disabled={cardPage === 1}
+                    onClick={() => setCardPage(p => p - 1)}
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm font-medium text-slate-600">Page {cardPage} of {totalCardPages}</span>
+                  <button
+                    type="button"
+                    className="button-secondary text-sm disabled:opacity-50"
+                    disabled={cardPage === totalCardPages}
+                    onClick={() => setCardPage(p => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <h3 className="text-lg font-bold text-slate-800">Report for: {selectedUser}</h3>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 mt-4">
+              <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100/50">
+                <span className="text-xs text-emerald-800 font-semibold block">Filtered Inflow</span>
+                <span className="text-xl font-bold text-emerald-600">{rupees(summary.total_inflow)}</span>
+              </div>
+              <div className="bg-rose-50/50 p-3 rounded-xl border border-rose-100/50">
+                <span className="text-xs text-rose-800 font-semibold block">Filtered Outflow</span>
+                <span className="text-xl font-bold text-rose-600">{rupees(summary.total_outflow)}</span>
+              </div>
+              <div className={`p-3 rounded-xl border col-span-2 sm:col-span-1 ${summary.total_inflow - summary.total_outflow >= 0 ? 'bg-emerald-50/50 border-emerald-100/50' : 'bg-rose-50/50 border-rose-100/50'}`}>
+                <span className={`text-xs font-semibold block ${summary.total_inflow - summary.total_outflow >= 0 ? 'text-emerald-800' : 'text-rose-800'}`}>Net Position</span>
+                <span className={`text-xl font-bold ${summary.total_inflow - summary.total_outflow >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {summary.total_inflow - summary.total_outflow >= 0 ? "+" : ""}{rupees(summary.total_inflow - summary.total_outflow)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4 bg-white p-4 rounded-2xl border border-slate-200">
+            <div className="md:col-span-2">
+              <label className="label">Search Transactions</label>
+              <input
+                placeholder="Bill #, receipt #, customer..."
+                value={detailSearch}
+                onChange={e => setDetailSearch(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="label">From Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => { setStartDate(e.target.value); setDetailPage(1); }}
+                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="label">To Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => { setEndDate(e.target.value); setDetailPage(1); }}
+                className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+              />
+            </div>
+
+            <div className="md:col-span-2 space-y-1">
+              <span className="label block">Record Type</span>
+              <div className="flex gap-2">
+                {["All", "Inflow", "Outflow"].map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => { setFilterType(t); setDetailPage(1); }}
+                    className={`flex-1 text-sm py-1.5 rounded-lg border transition-colors ${filterType === t ? "bg-brand-600 border-brand-600 text-white font-medium" : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="md:col-span-2 space-y-1">
+              <span className="label block">Payment Mode</span>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {["All", "UPI", "Cash", "Card", "Other"].map(m => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => { setFilterMode(m); setDetailPage(1); }}
+                    className={`flex-1 text-sm py-1.5 px-3 rounded-lg border transition-colors whitespace-nowrap ${filterMode === m ? "bg-brand-600 border-brand-600 text-white font-medium" : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"}`}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {loadingDetails ? (
+            <div className="flex justify-center p-8"><Spinner /></div>
+          ) : (
+            <div className="space-y-4">
+              <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="p-3 font-semibold text-slate-700">Date</th>
+                      <th className="p-3 font-semibold text-slate-700">Type</th>
+                      <th className="p-3 font-semibold text-slate-700">Bill / Receipt #</th>
+                      <th className="p-3 font-semibold text-slate-700">Customer / Category</th>
+                      <th className="p-3 font-semibold text-slate-700">Payment Mode</th>
+                      <th className="p-3 font-semibold text-slate-700 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {records.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-6 text-center text-slate-500">No records found</td>
+                      </tr>
+                    )}
+                    {records.map((row: any, i: number) => (
+                      <tr key={row.id || i} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewRecord(row.raw)}>
+                        <td className="p-3">{row.date?.slice(0, 10)}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${row.record_type === "Inflow" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                            {row.record_type}
+                          </span>
+                        </td>
+                        <td className="p-3">{row.bill_number || row.receipt_number || "—"}</td>
+                        <td className="p-3">{row.customer_name || "—"}</td>
+                        <td className="p-3">{row.payment_mode === "Other" ? (row.payment_mode_other || "Other") : row.payment_mode}</td>
+                        <td className={`p-3 text-right font-medium ${row.record_type === "Inflow" ? "text-emerald-600" : "text-rose-600"}`}>
+                          {row.record_type === "Inflow" ? "+" : "-"}{rupees(row.amount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="grid md:hidden gap-3">
+                {records.length === 0 && <p className="text-center text-slate-500 p-4">No records found</p>}
+                {records.map((row: any, i: number) => (
+                  <div key={row.id || i} className="rounded-xl border border-slate-200 bg-white p-4 space-y-2 shadow-sm cursor-pointer" onClick={() => setViewRecord(row.raw)}>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-semibold text-slate-500">{row.date?.slice(0, 10)}</span>
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${row.record_type === "Inflow" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
+                        {row.record_type}
+                      </span>
+                    </div>
+                    <div className="text-sm text-slate-700">
+                      <p><b>Ref:</b> {row.bill_number || row.receipt_number || "—"}</p>
+                      <p><b>Party:</b> {row.customer_name || "—"}</p>
+                      <p><b>Pay Mode:</b> {row.payment_mode === "Other" ? (row.payment_mode_other || "Other") : row.payment_mode}</p>
+                    </div>
+                    <div className={`text-right font-bold ${row.record_type === "Inflow" ? "text-emerald-600" : "text-rose-600"}`}>
+                      {row.record_type === "Inflow" ? "+" : "-"}{rupees(row.amount)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {totalDetailPages > 0 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-6 bg-slate-50 p-4 rounded-xl border border-slate-200 gap-4">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <span>Show</span>
+                    <select className="rounded-md border border-slate-300 px-2 py-1" value={detailLimit} onChange={(e) => { setDetailLimit(Number(e.target.value)); setDetailPage(1); }}>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                    <span>records</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button type="button" className="button-secondary text-sm disabled:opacity-50" disabled={detailPage === 1} onClick={() => setDetailPage(p => p - 1)}>Previous</button>
+                    <span className="text-sm font-medium text-slate-600">Page {detailPage} of {totalDetailPages}</span>
+                    <button type="button" className="button-secondary text-sm disabled:opacity-50" disabled={detailPage === totalDetailPages} onClick={() => setDetailPage(p => p + 1)}>Next</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1956,7 +2338,7 @@ function ConfirmModal({ title, message, onConfirm, onCancel }: any) {
   );
 }
 
-function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, reloadTrigger = 0, onRowClick, onHistoryClick }: any) {
+function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, reloadTrigger = 0, onRowClick, onHistoryClick, onDataFetched }: any) {
   const [data, setData] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -1980,6 +2362,7 @@ function DataTable({ endpoint, columns, onEdit, onDelete, filterDate = true, rel
       const res = await api(endpoint + separator + q.toString());
       setData(res.items || res);
       if (res.totalPages) setTotalPages(res.totalPages);
+      if (onDataFetched) onDataFetched(res);
     } catch (e) {
       console.error(e);
     }
